@@ -42,6 +42,10 @@ class ImageFilter(PreviewImage):
             },
         }
     
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("NaN")
+    
     def func(self, images, timeout, uid, **kwargs):
         urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
         PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls})

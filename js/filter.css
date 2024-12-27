@@ -16,9 +16,10 @@
 
 .cg_popup .buttons {
     position: absolute;
-    width:80%;
-    left:90%;
+    width:6%;
+    left:92%;
     height:90%;
+    top:5%;
 }
 
 .cg_popup .grid img {
@@ -33,7 +34,10 @@
 }
 
 .cg_popup .buttons button {
-
+    margin:10px;
+    padding: 4px;
+    display: block;
+    width:100%
 }
 
 .cg_popup.hidden {
