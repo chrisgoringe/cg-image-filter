@@ -2,42 +2,50 @@
     position: absolute;
     width:100%;
     height:100%;
-    background-color: #004111;
+    background-color: rgba(0, 0, 0, 0.95);
     z-index: 123456;
 }
 
 .cg_popup .grid {
     position: absolute;
     width:80%;
-    left:10%;
+    left:5%;
     height:90%;
     top:5%;
 }
 
 .cg_popup .buttons {
     position: absolute;
-    width:6%;
-    left:92%;
+    width:15%;
+    left:85%;
     height:90%;
     top:5%;
+    padding: 20px;
 }
 
 .cg_popup .grid img {
-    padding:4px;
+    margin: 2px;
     border: 1px solid white;
+    padding: 4px;
     max-width: 100%;
     max-height: 100%;
 }
 
 .cg_popup .grid img.selected {
-    border: 1px solid green;
+    border: 3px solid green;
+    padding: 2px;
 }
 
 .cg_popup .buttons button {
-    margin:10px;
+    margin-top: 10px;
     padding: 4px;
     display: block;
-    width:100%
+    width: 100px;
+}
+
+.cg_popup .buttons input {
+    padding: 4px;
+    display: inline;
 }
 
 .cg_popup.hidden {
