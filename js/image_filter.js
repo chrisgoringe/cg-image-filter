@@ -14,6 +14,7 @@ function send_response(msg) {
     body.append('response', msg);
     api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
     popup?.classList.add('hidden')
+    active = false
 }
 
 function send_picks() {
@@ -33,6 +34,7 @@ var popup = null
 var click_sends = null
 var send_button = null
 var cancel_button = null
+var active = false
 
 function create_popup() {
     popup = create('span', 'cg_popup hidden', document.body)
@@ -93,6 +95,7 @@ function redraw() {
 }
 
 function on_keydown(e) {
+    if (!active) return
     if (e.key=='x') {
         e.stopPropagation()
         e.preventDefault()
@@ -107,6 +110,7 @@ function on_keydown(e) {
 function receive_images(details) {
     const detail = details.detail
     if (app.graph._nodes_by_id[detail.uid].type=="Image Filter") {
+        active = true
         if (!popup) create_popup()
 
         picked.clear()

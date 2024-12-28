@@ -32,6 +32,7 @@ If you do nothing, and the number of seconds specified in the timeout is exceede
 ## Future plans
 
 - allow a choice on timeout of 'cancel' or 'pass all'
+- add a title (showing the title of the node)
 - add optional Latent and Mask inputs and outputs so that latents or masks associated with the images can also be filtered
 - a node that takes a single image as input, and when executed, activates the mask editor, then outputs an image and the on-the-fly mask
 - a node that takes an image and a string, and allows you to edit the string before passing it on
