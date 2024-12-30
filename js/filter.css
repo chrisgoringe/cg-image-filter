@@ -12,6 +12,15 @@
     left:5%;
     height:90%;
     top:5%;
+    display: grid;
+    align-content: space-evenly;
+}
+
+.cg_popup .title {
+    position: absolute;
+    left: 40%;
+    top: 2%;
+    font-size: larger;
 }
 
 .cg_popup .buttons {

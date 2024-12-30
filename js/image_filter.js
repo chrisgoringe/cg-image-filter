@@ -35,10 +35,12 @@ var click_sends = null
 var send_button = null
 var cancel_button = null
 var active = false
+var title_bar = null
 
 function create_popup() {
     popup = create('span', 'cg_popup hidden', document.body)
     const grid = create('span', 'grid', popup)
+    title_bar = create('span', 'title', popup)
     const buttons = create('span', 'buttons', popup)
     click_sends = create('input', 'control', buttons, {type:"checkbox", id:"click_sends"})
     create('label', 'control_text', buttons, {for:"click_sends", innerText:"click to send"})
@@ -112,6 +114,7 @@ function receive_images(details) {
     if (app.graph._nodes_by_id[detail.uid].type=="Image Filter") {
         active = true
         if (!popup) create_popup()
+        title_bar.innerText = app.graph._nodes_by_id[detail.uid].title ?? "Image Filter"
 
         picked.clear()
         if (detail.urls.length==1) picked.add('0')
