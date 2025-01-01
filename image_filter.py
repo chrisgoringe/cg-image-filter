@@ -111,7 +111,7 @@ class TextImageFilter(PreviewImage):
 
         return (image, response)
     
-class MaskEditFilter(PreviewImage, LoadImage):
+class MaskImageFilter(PreviewImage, LoadImage):
     RETURN_TYPES = ("IMAGE","MASK")
     RETURN_NAMES = ("image","mask")
     FUNCTION = "func"
