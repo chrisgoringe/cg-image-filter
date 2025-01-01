@@ -16,8 +16,19 @@ import torch
 @PromptServer.instance.routes.post('/cg-image-filter-message')
 async def cg_image_filter_message(request):
     post = await request.post()
-    ImageFilter.data = post.get("response")
+    Message.data = post.get("response")
     return web.json_response({})
+
+def wait(secs):
+    Message.data = None
+    end_time = time.monotonic() + secs
+    while(time.monotonic() < end_time and Message.data is None): time.sleep(1)
+    response = Message.data
+    Message.data = None
+    return response
+
+class Message:
+    data:str = None
 
 class ImageFilter(PreviewImage):
     RETURN_TYPES = ("IMAGE","LATENT","MASK")
@@ -26,15 +37,13 @@ class ImageFilter(PreviewImage):
     CATEGORY = "image_filter"
     OUTPUT_NODE = False
 
-    data:str = None
-
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": { 
                 "images" : ("IMAGE", ), 
                 "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
-                "ontimeout": (["send none", "send all"]),
+                "ontimeout": (["send none", "send all"], {}),
             },
             "optional": {
                 "latents" : ("LATENT", {"tooltip": "Optional - if provided, will be output"}),
@@ -55,12 +64,7 @@ class ImageFilter(PreviewImage):
         urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
         PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls})
 
-        ImageFilter.data = None
-        end_time = time.monotonic() + timeout
-        while(time.monotonic() < end_time and ImageFilter.data is None): time.sleep(1)
-        response = ImageFilter.data or ('' if ontimeout=='send none' else ",".join(list(str(x) for x in range(len(images)))))
-        ImageFilter.data = None
-
+        response = wait(timeout) or ('' if ontimeout=='send none' else ",".join(list(str(x) for x in range(len(images)))))
         images_to_return = list(int(x) for x in response.split(",") if x)
 
         if len(images_to_return) == 0: raise InterruptProcessingException()
@@ -70,3 +74,36 @@ class ImageFilter(PreviewImage):
         masks = torch.stack(list(masks[i] for i in images_to_return)) if masks is not None else None
                 
         return (images, latents, masks)
+    
+class TextImageFilter(PreviewImage):
+    RETURN_TYPES = ("IMAGE","STRING")
+    RETURN_NAMES = ("image","text")
+    FUNCTION = "func"
+    CATEGORY = "image_filter"
+    OUTPUT_NODE = False
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": { 
+                "image" : ("IMAGE", ), 
+                "text" : ("STRING", {"forceInput":True, "default":""}),
+                "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
+            },
+            "hidden": {
+                "prompt": "PROMPT", 
+                "extra_pnginfo": "EXTRA_PNGINFO", 
+                "uid":"UNIQUE_ID"
+            },
+        }
+    
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("NaN")
+    
+    def func(self, image, text, timeout, uid, **kwargs):
+        urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
+        PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "text":text})
+
+        response = wait(timeout) or text
+        return (image, response)

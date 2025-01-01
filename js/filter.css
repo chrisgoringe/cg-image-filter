@@ -14,6 +14,7 @@
     top:5%;
     display: grid;
     align-content: space-evenly;
+    justify-content: space-evenly;
 }
 
 .cg_popup .title {
@@ -55,6 +56,10 @@
 .cg_popup .buttons input {
     padding: 4px;
     display: inline;
+}
+
+.cg_popup .text_edit {
+    width: 100%;
 }
 
 .cg_popup.hidden {
