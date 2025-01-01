@@ -1,4 +1,4 @@
-import { app } from "../../scripts/app.js";
+import { app, ComfyApp } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
@@ -44,8 +44,36 @@ class Popup extends HTMLSpanElement {
         this.active = false
     }
 
+    respond_after_maskeditor() {
+        if (document.getElementById('maskEditor').style.display == 'none') {
+            this._send_response(this.node.imgs[0].src)
+        } else {
+            setTimeout(this.respond_after_maskeditor.bind(this), 100)
+        }
+    }
+
     show(details) { 
         const detail = details.detail
+        if (detail.timeout) {
+            this.hide()
+            return
+        }
+        if (detail.maskedit) {
+            this.hide()
+            this.node = app.graph._nodes_by_id[detail.uid]
+            //this.node.imgs = [...detail.urls]
+            //this.node.imgs.forEach((url, i)=>{ this.node.imgs[i].src = api.apiURL( `/view?filename=${encodeURIComponent(url.filename)}&type=${url.type}&subfolder=${url.subfolder}`) })
+            this.node.imgs = []
+            detail.urls.forEach((url, i)=>{ 
+                this.node.imgs.push( new Image() );
+                this.node.imgs[i].src = api.apiURL( `/view?filename=${encodeURIComponent(url.filename)}&type=${url.type}&subfolder=${url.subfolder}`) 
+            })
+            ComfyApp.copyToClipspace(this.node)
+            ComfyApp.clipspace_return_node = this.node
+            ComfyApp.open_maskeditor()
+            setTimeout(this.respond_after_maskeditor.bind(this), 1000)
+            return
+        }
         this.doing_text = (detail.text != null)
         this.n_images = detail.urls?.length
     
@@ -76,7 +104,7 @@ class Popup extends HTMLSpanElement {
             }
         })
         
-        if (detail.text) { this.text_edit = create('textarea', 'text_edit', this.grid, {"innerText":detail.text}) }
+        if (detail.text) { this.text_edit = create('textarea', 'text_edit', this.grid, {"innerHTML":detail.text}) }
         this.layout()
         this.classList.remove('hidden')
     }
