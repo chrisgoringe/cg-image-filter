@@ -10,6 +10,6 @@ app.registerExtension({
         create('link', null, document.getElementsByTagName('HEAD')[0], 
             {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./filter.css", import.meta.url).href } )
         api.addEventListener("execution_interrupted", popup.send_cancel.bind(popup));
-        api.addEventListener("cg-image-filter-images",popup.show.bind(popup));
+        api.addEventListener("cg-image-filter-images",popup.handle_message.bind(popup));
     }
 })

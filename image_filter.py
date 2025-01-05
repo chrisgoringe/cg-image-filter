@@ -1,7 +1,7 @@
 from server import PromptServer
 from aiohttp import web
 from nodes import PreviewImage, LoadImage
-from comfy.model_management import InterruptProcessingException
+from comfy.model_management import InterruptProcessingException, throw_exception_if_processing_interrupted
 import time, os
 import torch
 
@@ -22,7 +22,10 @@ async def cg_image_filter_message(request):
 def wait(secs):
     Message.data = None
     end_time = time.monotonic() + secs
-    while(time.monotonic() < end_time and Message.data is None): time.sleep(1)
+    while(time.monotonic() < end_time and Message.data is None): 
+        throw_exception_if_processing_interrupted()
+        PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic())})
+        time.sleep(0.2)
     response = Message.data
     if response is None:
         PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True})
@@ -92,7 +95,7 @@ class TextImageFilter(PreviewImage):
         return {
             "required": { 
                 "image" : ("IMAGE", ), 
-                "text" : ("STRING", {"forceInput":True, "default":""}),
+                "text" : ("STRING", {"default":""}),
                 "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
             },
             "hidden": HIDDEN,
@@ -124,6 +127,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
             "required": { 
                 "image" : ("IMAGE", ), 
                 "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
+                "if_no_mask": (["cancel", "send blank"], {}),
             },
             "hidden": HIDDEN,
         }
@@ -135,12 +139,16 @@ class MaskImageFilter(PreviewImage, LoadImage):
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs): return True
     
-    def func(self, image, timeout, uid, **kwargs):
+    def func(self, image, timeout, uid, if_no_mask, **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
         PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "maskedit":True})
-        src = wait(timeout)
-        if src:
-            filename = src.split('=')[1].split('&')[0]
-            return self.load_image(os.path.join('clipspace', filename)+" [input]")
-        else:
-            return self.load_image(urls[0]['filename']+" [temp]")
+        
+        if (src := wait(timeout)):
+            try:
+                filename = src.split('=')[1].split('&')[0]
+                return self.load_image(os.path.join('clipspace', filename)+" [input]")
+            except FileNotFoundError:
+                pass
+
+        if if_no_mask == 'cancel': raise InterruptProcessingException()
+        return self.load_image(urls[0]['filename']+" [temp]")

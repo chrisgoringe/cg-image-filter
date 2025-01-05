@@ -6,10 +6,9 @@ import { create } from "./utils.js";
 class Popup extends HTMLSpanElement {
     constructor() {
         super()
-        this.hide()
         this.classList.add('cg_popup')
-        document.body.appendChild(this)
         
+        this.counter            = create('span', 'cg_counter hidden', document.body)
         this.grid               = create('span', 'grid', this)
         this.title_bar          = create('span', 'title', this)
         this.buttons            = create('span', 'buttons', this)
@@ -23,13 +22,15 @@ class Popup extends HTMLSpanElement {
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
 
         document.addEventListener('keydown', (e)=>{ this.on_keydown(e) })
+        document.body.appendChild(this)
+        this.close()
     }
 
     _send_response(msg) {
         const body = new FormData();
         body.append('response', msg);
         api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
-        this.hide()
+        this.close()
     }
     
     send_current_state() {
@@ -39,9 +40,38 @@ class Popup extends HTMLSpanElement {
     
     send_cancel() { this._send_response('') }
 
-    hide() { 
+    close() { 
         this.classList.add('hidden') 
+        this.counter.classList.add('hidden') 
         this.active = false
+        if (document.getElementById('maskEditor')) document.getElementById('maskEditor').style.display = 'none'
+    }
+
+    handle_message(message) { 
+        const detail = message.detail
+        if (detail.timeout)       this.handle_timeout(detail)
+        else if (detail.tick)     this.handle_tick(detail)
+        else if (detail.maskedit) this.handle_maskedit(detail) 
+        else if (detail.urls)     this.handle_urls(detail)
+    }
+
+    handle_timeout(detail) { this.close() }
+
+    handle_tick(detail) { this.counter.innerText = `${detail.tick} s` }
+
+    handle_maskedit(detail) {
+        this.close()
+        this.node = app.graph._nodes_by_id[detail.uid]
+        this.node.imgs = []
+        detail.urls.forEach((url, i)=>{ 
+            this.node.imgs.push( new Image() );
+            this.node.imgs[i].src = api.apiURL( `/view?filename=${encodeURIComponent(url.filename)}&type=${url.type}&subfolder=${url.subfolder}`) 
+        })
+        ComfyApp.copyToClipspace(this.node)
+        ComfyApp.clipspace_return_node = this.node
+        ComfyApp.open_maskeditor()
+        this.counter.classList.remove('hidden')
+        setTimeout(this.respond_after_maskeditor.bind(this), 1000)
     }
 
     respond_after_maskeditor() {
@@ -52,28 +82,7 @@ class Popup extends HTMLSpanElement {
         }
     }
 
-    show(details) { 
-        const detail = details.detail
-        if (detail.timeout) {
-            this.hide()
-            return
-        }
-        if (detail.maskedit) {
-            this.hide()
-            this.node = app.graph._nodes_by_id[detail.uid]
-            //this.node.imgs = [...detail.urls]
-            //this.node.imgs.forEach((url, i)=>{ this.node.imgs[i].src = api.apiURL( `/view?filename=${encodeURIComponent(url.filename)}&type=${url.type}&subfolder=${url.subfolder}`) })
-            this.node.imgs = []
-            detail.urls.forEach((url, i)=>{ 
-                this.node.imgs.push( new Image() );
-                this.node.imgs[i].src = api.apiURL( `/view?filename=${encodeURIComponent(url.filename)}&type=${url.type}&subfolder=${url.subfolder}`) 
-            })
-            ComfyApp.copyToClipspace(this.node)
-            ComfyApp.clipspace_return_node = this.node
-            ComfyApp.open_maskeditor()
-            setTimeout(this.respond_after_maskeditor.bind(this), 1000)
-            return
-        }
+    handle_urls(detail) {
         this.doing_text = (detail.text != null)
         this.n_images = detail.urls?.length
     
@@ -107,6 +116,7 @@ class Popup extends HTMLSpanElement {
         if (detail.text) { this.text_edit = create('textarea', 'text_edit', this.grid, {"innerHTML":detail.text}) }
         this.layout()
         this.classList.remove('hidden')
+        this.counter.classList.remove('hidden')
     }
 
     on_keydown(e) {

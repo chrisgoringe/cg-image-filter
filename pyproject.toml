@@ -1,7 +1,7 @@
 [project]
 name = "cg-image-filter"
 description = "A custom node that pauses the flow while you choose which image or images to pass on to the rest of the workflow. Simplified and improved version of cg-image-picker."
-version = "0.1"
+version = "1.0"
 license = "LICENSE"
 
 [project.urls]

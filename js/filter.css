@@ -6,6 +6,18 @@
     z-index: 123456;
 }
 
+.cg_counter {
+    position: absolute;
+    width: 60px;
+    top: 45px;
+    left: 70px;
+    color: white;
+    padding: 10px;
+    z-index: 123457;
+    background-color: rgba(128, 128, 128, 0.5);
+    text-align: center;
+}
+
 .cg_popup .grid {
     position: absolute;
     width:80%;
