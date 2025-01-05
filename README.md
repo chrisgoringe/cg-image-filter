@@ -58,3 +58,7 @@ The image and (edited) text are output. The intended use is for captioning workf
 generated. Here's a trivial workflow:
 
 ![text workflow](images/text%20workflow.png)
+
+## Feedback
+
+Bugs and ideas welcome in the [GitHub](https://github.com/chrisgoringe/cg-image-filter/issues)
