@@ -22,7 +22,7 @@
     position: absolute;
     width:80%;
     left:5%;
-    height:90%;
+    height:calc(90% - 150px);
     top:5%;
     display: grid;
     align-content: space-evenly;
