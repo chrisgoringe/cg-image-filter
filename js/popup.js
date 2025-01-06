@@ -10,6 +10,7 @@ class Popup extends HTMLSpanElement {
         
         this.counter            = create('span', 'cg_counter hidden', document.body)
         this.grid               = create('span', 'grid', this)
+        this.text_edit          = create()
         this.title_bar          = create('span', 'title', this)
         this.buttons            = create('span', 'buttons', this)
         this.click_sends_pane   = create('span', null, this.buttons)
@@ -113,7 +114,7 @@ class Popup extends HTMLSpanElement {
             }
         })
         
-        if (detail.text) { this.text_edit = create('textarea', 'text_edit', this.grid, {"innerHTML":detail.text}) }
+        if (this.doing_text) { this.text_edit = create('textarea', 'text_edit', this.grid, {"innerHTML":detail.text}) }
         this.layout()
         this.classList.remove('hidden')
         this.counter.classList.remove('hidden')
