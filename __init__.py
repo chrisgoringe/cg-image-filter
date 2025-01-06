@@ -7,7 +7,7 @@
 
 from .image_filter import ImageFilter, TextImageFilter, MaskImageFilter
 
-VERSION = "1.0"
+VERSION = "1.0.1"
 WEB_DIRECTORY = "./js"
 
 NODE_CLASS_MAPPINGS= {
