@@ -1,6 +1,6 @@
 # cg-image-filter
 
-A set of three nodes designed to pause execution of the workflow to allow you to make selections and/or edits before continuing.
+A set of four nodes designed to pause execution of the workflow to allow you to make selections and/or edits before continuing.
 
 ## Image Filter
 
@@ -58,6 +58,12 @@ The image and (edited) text are output. The intended use is for captioning workf
 generated. Here's a trivial workflow:
 
 ![text workflow](images/text%20workflow.png)
+
+## Text Image Filter with Extras
+
+Just like the Text Image Filter, but with three extra text fields, intended for short form - like specifying the denoising you want on the next step.
+
+They are all strings, so you'll probably need to run the output through some sort of conversion node.
 
 ## Feedback
 
