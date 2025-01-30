@@ -114,6 +114,40 @@ class TextImageFilter(PreviewImage):
 
         return (image, response)
     
+class TextImageFilterWithExtras(PreviewImage):
+    RETURN_TYPES = ("IMAGE","STRING","STRING","STRING","STRING")
+    RETURN_NAMES = ("image","text","extra1","extra2","extra3")
+    FUNCTION = "func"
+    CATEGORY = "image_filter"
+    OUTPUT_NODE = False
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": { 
+                "image" : ("IMAGE", ), 
+                "text" : ("STRING", {"default":""}),
+                "extra1" : ("STRING", {"default":""}),
+                "extra2" : ("STRING", {"default":""}),
+                "extra3" : ("STRING", {"default":""}),
+                "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
+            },
+            "hidden": HIDDEN,
+        }
+    
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("NaN")
+    
+    def func(self, image, text, extra1, extra2, extra3, timeout, uid, **kwargs):
+        urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
+        PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3]})
+
+        response = wait(timeout)
+        response = response.split(",") if response else [""]*4
+
+        return (image, *response) 
+    
 class MaskImageFilter(PreviewImage, LoadImage):
     RETURN_TYPES = ("IMAGE","MASK")
     RETURN_NAMES = ("image","mask")

@@ -18,6 +18,7 @@ class Popup extends HTMLSpanElement {
         this.click_sends_label  = create('label', 'control_text', this.click_sends_pane, {for:"click_sends", innerText:"click to send"})
         this.send_button        = create('button', 'control', this.buttons, {innerText:"Send (S)"} )
         this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel (X)"} )
+        this.extras             = create('span', 'extras', this.buttons)
     
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
@@ -29,7 +30,12 @@ class Popup extends HTMLSpanElement {
 
     _send_response(msg) {
         const body = new FormData();
-        body.append('response', msg);
+        var response = msg
+        if (this.n_extras) {
+            response = [response]
+            Array.from(this.extras.children).forEach((e)=>{ response.push(e.value) })
+        }
+        body.append('response', response);
         api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
         this.close()
     }
@@ -84,6 +90,12 @@ class Popup extends HTMLSpanElement {
     }
 
     handle_urls(detail) {
+        this.n_extras = detail.extras ? detail.extras.length : 0
+        this.extras.innerHTML = ''
+        for (let i=0; i<this.n_extras; i++) {
+            const extra = create('input', 'extra', this.extras, {value:detail.extras[i]})
+        }
+
         this.doing_text = (detail.text != null)
         this.n_images = detail.urls?.length
     
