@@ -144,7 +144,7 @@ class TextImageFilterWithExtras(PreviewImage):
         PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3]})
 
         response = wait(timeout)
-        response = response.split(",") if response else [""]*4
+        response = response.split("|||") if response else [""]*4
 
         return (image, *response) 
     

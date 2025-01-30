@@ -31,10 +31,7 @@ class Popup extends HTMLSpanElement {
     _send_response(msg) {
         const body = new FormData();
         var response = msg
-        if (this.n_extras) {
-            response = [response]
-            Array.from(this.extras.children).forEach((e)=>{ response.push(e.value) })
-        }
+        Array.from(this.extras.children).forEach((e)=>{ response = response + "|||" + e.value })
         body.append('response', response);
         api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
         this.close()
