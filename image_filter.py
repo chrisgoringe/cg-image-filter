@@ -54,7 +54,7 @@ class ImageFilter(PreviewImage):
             "required": { 
                 "images" : ("IMAGE", ), 
                 "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
-                "ontimeout": (["send none", "send all"], {}),
+                "ontimeout": (["send none", "send all", "send first", "send last"], {}),
             },
             "optional": {
                 "latents" : ("LATENT", {"tooltip": "Optional - if provided, will be output"}),
@@ -71,7 +71,13 @@ class ImageFilter(PreviewImage):
         urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
         PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls})
 
-        response = wait(timeout) or ('' if ontimeout=='send none' else ",".join(list(str(x) for x in range(len(images)))))
+        response = wait(timeout)
+        if not response:
+            if ontimeout=='send none': response = ""
+            if ontimeout=='send all': response = ",".join(list(str(x) for x in range(len(images))))
+            if ontimeout=='send first': response = "0"
+            if ontimeout=='send last': response = str(len(images)-1)
+
         images_to_return = list(int(x) for x in response.split(",") if x)
 
         if len(images_to_return) == 0: 
@@ -144,7 +150,7 @@ class TextImageFilterWithExtras(PreviewImage):
         PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3]})
 
         response = wait(timeout)
-        response = response.split("|||") if response else [""]*4
+        response = response.split("|||") if response else [text, extra1, extra2, extra3]
 
         return (image, *response) 
     
