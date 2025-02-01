@@ -12,6 +12,7 @@ class Popup extends HTMLSpanElement {
         
         this.counter            = create('span', 'cg_counter hidden', document.body)
         this.grid               = create('span', 'grid', this)
+        this.overlaygrid        = create('span', 'grid overlaygrid', this)
         this.text_edit          = create()
         this.title_bar          = create('span', 'title', this)
         this.buttons            = create('span', 'buttons', this)
@@ -19,7 +20,7 @@ class Popup extends HTMLSpanElement {
         this.click_sends        = create('input', 'control', this.checkboxes, {type:"checkbox", id:"click_sends"})
         this.click_sends_label  = create('label', 'control_text', this.checkboxes, {for:"click_sends", innerText:"click to send"})
         this.auto_send          = create('input', 'control', this.checkboxes, {type:"checkbox", id:"auto_send"})
-        this.auto_sends_label   = create('label', 'control_text', this.checkboxes, {for:"auto_send", innerText:"autosend one if identical"})
+        this.auto_send_label    = create('label', 'control_text', this.checkboxes, {for:"auto_send", innerText:"autosend one if identical"})
         this.play_sound         = create('input', 'control', this.checkboxes, {type:"checkbox", id:"play_sound", checked:true})
         this.play_sound_label   = create('label', 'control_text', this.checkboxes, {for:"play_sound", innerText:"play sound"})
         this.send_button        = create('button', 'control', this.buttons, {innerText:"Send (S)"} )
@@ -98,6 +99,10 @@ class Popup extends HTMLSpanElement {
         }
     }
 
+    get_full_url(url) {
+        return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}`)
+    }
+
     handle_urls(detail) {
         this.n_extras = detail.extras ? detail.extras.length : 0
         this.extras.innerHTML = ''
@@ -122,10 +127,15 @@ class Popup extends HTMLSpanElement {
         if (this.n_images==1) this.picked.add('0')
 
         this.grid.innerHTML = ''
+        this.overlaygrid.innerHTML = ''
         detail.urls.forEach((url, i)=>{
             console.log(url)
-            const full_url = api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}`)
+            const full_url = this.get_full_url(url)
             const img = create('img', null, this.grid, {src:full_url})
+            if (detail.mask_urls[i]) {
+                const mask_url = this.get_full_url(detail.mask_urls[i])
+                create('img', null, this.overlaygrid, {src:mask_url})
+            }
             img.onload = this.layout.bind(this)
             if (!this.doing_text && this.n_images>1) {
                 img.addEventListener('click', (e)=>{
@@ -188,6 +198,11 @@ class Popup extends HTMLSpanElement {
 
         const rows = Math.ceil(this.n_images/per_row)    
         Array.from(this.grid.children).forEach((c,i)=>{
+            c.style.gridArea = `${Math.floor(i/per_row) + 1} / ${i%per_row + 1} /  auto / auto`; 
+            c.style.maxHeight = `${box.height / rows}px`
+            c.style.maxWidth = `${box.width / per_row}px`
+        })
+        Array.from(this.overlaygrid.children).forEach((c,i)=>{
             c.style.gridArea = `${Math.floor(i/per_row) + 1} / ${i%per_row + 1} /  auto / auto`; 
             c.style.maxHeight = `${box.height / rows}px`
             c.style.maxWidth = `${box.width / per_row}px`

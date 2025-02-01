@@ -29,6 +29,10 @@
     justify-content: space-evenly;
 }
 
+.cg_popup .overlaygrid {
+    opacity: 0.5;
+}
+
 .cg_popup .title {
     position: absolute;
     left: 40%;

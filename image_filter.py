@@ -32,6 +32,10 @@ def wait(secs):
     Message.data = None
     return response
 
+    
+def mask_to_image(mask:torch.Tensor):
+    return torch.stack([mask, mask, mask, 1.0-mask], -1)
+
 class Message:
     data:str = None
 
@@ -106,6 +110,9 @@ class TextImageFilter(PreviewImage):
                 "text" : ("STRING", {"default":""}),
                 "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
             },
+            "optional": {
+                "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
+            },
             "hidden": HIDDEN,
         }
     
@@ -113,9 +120,11 @@ class TextImageFilter(PreviewImage):
     def IS_CHANGED(cls, **kwargs):
         return float("NaN")
     
-    def func(self, image, text, timeout, uid, **kwargs):
+    def func(self, image, text, timeout, uid, mask=None, **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
-        PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "text":text})
+        payload = {"uid": uid, "urls":urls, "text":text}
+        if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
+        PromptServer.instance.send_sync("cg-image-filter-images", payload)
 
         response = wait(timeout)
 
@@ -140,6 +149,9 @@ class TextImageFilterWithExtras(PreviewImage):
                 "extra3" : ("STRING", {"default":""}),
                 "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
             },
+            "optional": {
+                "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
+            },
             "hidden": HIDDEN,
         }
     
@@ -147,14 +159,18 @@ class TextImageFilterWithExtras(PreviewImage):
     def IS_CHANGED(cls, **kwargs):
         return float("NaN")
     
-    def func(self, image, text, extra1, extra2, extra3, timeout, uid, **kwargs):
+    def func(self, image, text, extra1, extra2, extra3, timeout, uid, mask=None, **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
-        PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3]})
+        payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3]}
+        if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
+
+        PromptServer.instance.send_sync("cg-image-filter-images", payload)
 
         response = wait(timeout)
         response = response.split("|||") if response else [text, extra1, extra2, extra3]
 
         return (image, *response) 
+
     
 class MaskImageFilter(PreviewImage, LoadImage):
     RETURN_TYPES = ("IMAGE","MASK")
