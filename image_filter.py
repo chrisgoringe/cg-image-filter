@@ -32,7 +32,13 @@ def wait(secs):
     Message.data = None
     return response
 
-    
+def send_with_resend(payload, timeout):
+    response = "-1"
+    while response == "-1":
+        PromptServer.instance.send_sync("cg-image-filter-images", payload)
+        response = wait(timeout)
+    return response
+
 def mask_to_image(mask:torch.Tensor):
     return torch.stack([mask, mask, mask, 1.0-mask], -1)
 
@@ -75,9 +81,10 @@ class ImageFilter(PreviewImage):
         B = images.shape[0]
         all_the_same = ( B and all( (images[i]==images[0]).all() for i in range(1,B) )) 
         urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
-        PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "allsame":all_the_same})
+        payload = {"uid": uid, "urls":urls, "allsame":all_the_same}
 
-        response = wait(timeout)
+        response = send_with_resend(payload, timeout)
+
         if not response:
             if ontimeout=='send none': response = ""
             if ontimeout=='send all': response = ",".join(list(str(x) for x in range(len(images))))
@@ -124,10 +131,8 @@ class TextImageFilter(PreviewImage):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "text":text}
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
-        PromptServer.instance.send_sync("cg-image-filter-images", payload)
 
-        response = wait(timeout)
-
+        response = send_with_resend(payload, timeout)
 
         return (image, response)
     
@@ -164,9 +169,7 @@ class TextImageFilterWithExtras(PreviewImage):
         payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3]}
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
 
-        PromptServer.instance.send_sync("cg-image-filter-images", payload)
-
-        response = wait(timeout)
+        response = send_with_resend(payload, timeout)
         response = response.split("|||") if response else [text, extra1, extra2, extra3]
 
         return (image, *response) 
@@ -199,11 +202,12 @@ class MaskImageFilter(PreviewImage, LoadImage):
     
     def func(self, image, timeout, uid, if_no_mask, **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
-        PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "maskedit":True})
+        payload = {"uid": uid, "urls":urls, "maskedit":True}
+        response = send_with_resend(payload, timeout)
         
-        if (src := wait(timeout)):
+        if (response):
             try:
-                filename = src.split('=')[1].split('&')[0]
+                filename = response.split('=')[1].split('&')[0]
                 return self.load_image(os.path.join('clipspace', filename)+" [input]")
             except FileNotFoundError:
                 pass

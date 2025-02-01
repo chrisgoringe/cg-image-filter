@@ -30,6 +30,11 @@ Here's a simple use: generate a batch of images and pick which ones you want to 
 The "Click to send" option can be used when you know you want to send at most one image. 
 When checked, clicking an image selects it and sends it in a single action.
 
+If all the images are identical, you can set the filter to automatically pass one of them through.
+
+Have a sound play when the window pops up - select the checkbox. 
+The sound played is 'ding.mp3' from the 'js' folder, so feel free to change it.
+
 The Latent and Mask inputs are optional. If used, they should have the same number of latents (or masks) as the image batch, 
 and the latents (or masks) corresponding to the selected images will also be output. Use this if (for instance) you want to 
 select from a batch of images, but the next stage uses the latent - that way you avoid the decode-recode loss.

@@ -30,7 +30,7 @@ class Popup extends HTMLSpanElement {
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
 
-        document.addEventListener('keydown', (e)=>{ this.on_keydown(e) })
+        document.addEventListener('keypress', (e)=>{ this.on_keypress(e) })
         document.body.appendChild(this)
         this.close()
     }
@@ -60,6 +60,7 @@ class Popup extends HTMLSpanElement {
         this.counter.classList.add('hidden') 
         this.active = false
         if (document.getElementById('maskEditor')) document.getElementById('maskEditor').style.display = 'none'
+        this.n_images = 0
     }
 
     handle_message(message) { 
@@ -71,9 +72,16 @@ class Popup extends HTMLSpanElement {
         else if (detail.urls)     this.handle_urls(detail)
     }
 
+    reshow_window() {
+        this._send_response("-1")
+    }
+
     handle_timeout(detail) { this.close() }
 
-    handle_tick(detail) { this.counter.innerText = `${detail.tick} s` }
+    handle_tick(detail) { 
+        this.counter.innerText = `${detail.tick} s` 
+        if (this.n_images && this.classList.contains('hidden')) this.reshow_window()
+    }
 
     handle_maskedit(detail) {
         this.close()
@@ -132,7 +140,7 @@ class Popup extends HTMLSpanElement {
             console.log(url)
             const full_url = this.get_full_url(url)
             const img = create('img', null, this.grid, {src:full_url})
-            if (detail.mask_urls[i]) {
+            if (detail.mask_urls) {
                 const mask_url = this.get_full_url(detail.mask_urls[i])
                 create('img', null, this.overlaygrid, {src:mask_url})
             }
@@ -158,7 +166,11 @@ class Popup extends HTMLSpanElement {
         this.maybe_play_sound()
     }
 
-    on_keydown(e) {
+    on_keypress(e) {
+        if (e.key=='!') {
+            this.reshow_window()
+            return
+        }
         if (!this.active) return
         if (this.doing_text) return
         if (e.key=='x') {
