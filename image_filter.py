@@ -68,8 +68,10 @@ class ImageFilter(PreviewImage):
         return float("NaN")
     
     def func(self, images, timeout, ontimeout, uid, latents=None, masks=None, **kwargs):
+        B = images.shape[0]
+        all_the_same = ( B and all( (images[i]==images[0]).all() for i in range(1,B) )) 
         urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
-        PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls})
+        PromptServer.instance.send_sync("cg-image-filter-images", {"uid": uid, "urls":urls, "allsame":all_the_same})
 
         response = wait(timeout)
         if not response:

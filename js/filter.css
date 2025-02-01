@@ -38,11 +38,11 @@
 
 .cg_popup .buttons {
     position: absolute;
-    width:15%;
-    left:85%;
+    width:14%;
+    left:86%;
     height:90%;
     top:5%;
-    padding: 20px;
+    font-size: small;
 }
 
 .cg_popup .control_text:after {

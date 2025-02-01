@@ -19,8 +19,8 @@ class Popup extends HTMLSpanElement {
         this.click_sends        = create('input', 'control', this.checkboxes, {type:"checkbox", id:"click_sends"})
         this.click_sends_label  = create('label', 'control_text', this.checkboxes, {for:"click_sends", innerText:"click to send"})
         this.auto_send          = create('input', 'control', this.checkboxes, {type:"checkbox", id:"auto_send"})
-        this.auto_sends_label   = create('label', 'control_text', this.checkboxes, {for:"auto_send", innerText:"auto send if identical"})
-        this.play_sound         = create('input', 'control', this.checkboxes, {type:"checkbox", id:"play_sound"})
+        this.auto_sends_label   = create('label', 'control_text', this.checkboxes, {for:"auto_send", innerText:"autosend one if identical"})
+        this.play_sound         = create('input', 'control', this.checkboxes, {type:"checkbox", id:"play_sound", checked:true})
         this.play_sound_label   = create('label', 'control_text', this.checkboxes, {for:"play_sound", innerText:"play sound"})
         this.send_button        = create('button', 'control', this.buttons, {innerText:"Send (S)"} )
         this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel (X)"} )
@@ -63,6 +63,7 @@ class Popup extends HTMLSpanElement {
 
     handle_message(message) { 
         const detail = message.detail
+        this.allsame = detail.allsame || false
         if (detail.timeout)       this.handle_timeout(detail)
         else if (detail.tick)     this.handle_tick(detail)
         else if (detail.maskedit) this.handle_maskedit(detail) 
@@ -102,6 +103,12 @@ class Popup extends HTMLSpanElement {
         this.extras.innerHTML = ''
         for (let i=0; i<this.n_extras; i++) {
             const extra = create('input', 'extra', this.extras, {value:detail.extras[i]})
+        }
+
+        // do this after the extras are set up so that we send the right extras
+        if (this.auto_send.checked && this.allsame) {
+            this._send_response("0")
+            return
         }
 
         this.doing_text = (detail.text != null)
@@ -156,9 +163,6 @@ class Popup extends HTMLSpanElement {
     }
 
     layout() {
-        if (this.auto_send.checked) {
-            // check for all the same
-        }
         if (this.laidOut) return
 
         const im_w = this.grid.firstChild.naturalWidth
@@ -198,8 +202,15 @@ class Popup extends HTMLSpanElement {
             else c.classList.remove('selected')
         }) 
         this.send_button.disabled = (!this.doing_text && (this.click_sends.checked || this.picked.size==0))
+
         this.cancel_button.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
-        this.checkboxes.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
+
+        this.auto_send.style.visibility = (this.n_images>1) ? 'visible' : 'hidden'
+        this.auto_send_label.style.visibility = (this.n_images>1) ? 'visible' : 'hidden'
+
+        this.click_sends.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
+        this.click_sends_label.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
+
         this.send_button.innerText = (this.doing_text) ? 'Send' : 'Send (S)'
     }
 
