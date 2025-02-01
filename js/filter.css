@@ -45,6 +45,11 @@
     padding: 20px;
 }
 
+.cg_popup .control_text:after {
+    content:"\a";
+    white-space: pre;
+}
+
 .cg_popup .grid img {
     margin: 2px;
     border: 1px solid white;

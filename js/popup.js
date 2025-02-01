@@ -6,6 +6,8 @@ import { create } from "./utils.js";
 class Popup extends HTMLSpanElement {
     constructor() {
         super()
+        this.audio = new Audio('extensions/cg-image-filter/ding.mp3');
+
         this.classList.add('cg_popup')
         
         this.counter            = create('span', 'cg_counter hidden', document.body)
@@ -13,9 +15,13 @@ class Popup extends HTMLSpanElement {
         this.text_edit          = create()
         this.title_bar          = create('span', 'title', this)
         this.buttons            = create('span', 'buttons', this)
-        this.click_sends_pane   = create('span', null, this.buttons)
-        this.click_sends        = create('input', 'control', this.click_sends_pane, {type:"checkbox", id:"click_sends"})
-        this.click_sends_label  = create('label', 'control_text', this.click_sends_pane, {for:"click_sends", innerText:"click to send"})
+        this.checkboxes         = create('span', null, this.buttons)
+        this.click_sends        = create('input', 'control', this.checkboxes, {type:"checkbox", id:"click_sends"})
+        this.click_sends_label  = create('label', 'control_text', this.checkboxes, {for:"click_sends", innerText:"click to send"})
+        this.auto_send          = create('input', 'control', this.checkboxes, {type:"checkbox", id:"auto_send"})
+        this.auto_sends_label   = create('label', 'control_text', this.checkboxes, {for:"auto_send", innerText:"auto send if identical"})
+        this.play_sound         = create('input', 'control', this.checkboxes, {type:"checkbox", id:"play_sound"})
+        this.play_sound_label   = create('label', 'control_text', this.checkboxes, {for:"play_sound", innerText:"play sound"})
         this.send_button        = create('button', 'control', this.buttons, {innerText:"Send (S)"} )
         this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel (X)"} )
         this.extras             = create('span', 'extras', this.buttons)
@@ -35,6 +41,10 @@ class Popup extends HTMLSpanElement {
         body.append('response', response);
         api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
         this.close()
+    }
+
+    maybe_play_sound() {
+        if (this.play_sound.checked) this.audio.play();
     }
     
     send_current_state() {
@@ -73,6 +83,7 @@ class Popup extends HTMLSpanElement {
         })
         ComfyApp.copyToClipspace(this.node)
         ComfyApp.clipspace_return_node = this.node
+        this.maybe_play_sound()
         ComfyApp.open_maskeditor()
         this.counter.classList.remove('hidden')
         setTimeout(this.respond_after_maskeditor.bind(this), 1000)
@@ -127,6 +138,7 @@ class Popup extends HTMLSpanElement {
         this.layout()
         this.classList.remove('hidden')
         this.counter.classList.remove('hidden')
+        this.maybe_play_sound()
     }
 
     on_keydown(e) {
@@ -144,6 +156,9 @@ class Popup extends HTMLSpanElement {
     }
 
     layout() {
+        if (this.auto_send.checked) {
+            // check for all the same
+        }
         if (this.laidOut) return
 
         const im_w = this.grid.firstChild.naturalWidth
@@ -184,7 +199,7 @@ class Popup extends HTMLSpanElement {
         }) 
         this.send_button.disabled = (!this.doing_text && (this.click_sends.checked || this.picked.size==0))
         this.cancel_button.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
-        this.click_sends_pane.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
+        this.checkboxes.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
         this.send_button.innerText = (this.doing_text) ? 'Send' : 'Send (S)'
     }
 
