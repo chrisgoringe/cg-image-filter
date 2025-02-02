@@ -3,6 +3,8 @@ import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
 
+EXTENSION_NODES = ["ImageFilter", "TextImageFilter", "MaskImageFilter", "TextImageFilterWithExtras"]
+
 class Popup extends HTMLSpanElement {
     constructor() {
         super()
@@ -26,6 +28,8 @@ class Popup extends HTMLSpanElement {
         this.send_button        = create('button', 'control', this.buttons, {innerText:"Send (S)"} )
         this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel (X)"} )
         this.extras             = create('span', 'extras', this.buttons)
+
+        this.grid.addEventListener('click', this.on_click)
     
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
@@ -66,6 +70,14 @@ class Popup extends HTMLSpanElement {
     handle_message(message) { 
         const detail = message.detail
         this.allsame = detail.allsame || false
+
+        if (detail.uid) {
+            const node = app.graph._nodes_by_id[detail.uid]
+            if (!node) return
+            const type = nodeType.type ?? nodeType.comfyClass;
+            if (!EXTENSION_NODES.includes(type)) return
+        }
+
         if (detail.timeout)       this.handle_timeout(detail)
         else if (detail.tick)     this.handle_tick(detail)
         else if (detail.maskedit) this.handle_maskedit(detail) 
@@ -129,7 +141,7 @@ class Popup extends HTMLSpanElement {
     
         this.active = true
         this.laidOut = false
-        this.title_bar.innerText = app.graph._nodes_by_id[detail.uid].title ?? "Image Filter"
+        this.title_bar.innerText = app.graph._nodes_by_id[detail.uid]?.title ?? "Image Filter"
     
         this.picked = new Set()
         if (this.n_images==1) this.picked.add('0')
@@ -145,18 +157,7 @@ class Popup extends HTMLSpanElement {
                 create('img', null, this.overlaygrid, {src:mask_url})
             }
             img.onload = this.layout.bind(this)
-            if (!this.doing_text && this.n_images>1) {
-                img.addEventListener('click', (e)=>{
-                    const s = `${i}`
-                    if (this.click_sends.checked) {
-                        this._send_response(s)
-                    } else {
-                        if (this.picked.has(s)) this.picked.delete(s)
-                        else this.picked.add(s)
-                        this.redraw()
-                    }
-                })
-            }
+            if (this.n_images>1)  img.clickableImage = i
         })
         
         if (this.doing_text) { this.text_edit = create('textarea', 'text_edit', this.grid, {"innerHTML":detail.text}) }
@@ -164,6 +165,19 @@ class Popup extends HTMLSpanElement {
         this.classList.remove('hidden')
         this.counter.classList.remove('hidden')
         this.maybe_play_sound()
+    }
+
+    on_click(e) {
+        if (e.target.clickableImage != undefined) {
+            const s = `${e.target.clickableImage}`
+            if (this.click_sends.checked) {
+                this._send_response(s)
+            } else {
+                if (this.picked.has(s)) this.picked.delete(s)
+                else this.picked.add(s)
+                this.redraw()
+            }
+        }
     }
 
     on_keypress(e) {

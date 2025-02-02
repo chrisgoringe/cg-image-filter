@@ -31,6 +31,7 @@
 
 .cg_popup .overlaygrid {
     opacity: 0.5;
+    pointer-events: none;
 }
 
 .cg_popup .title {
