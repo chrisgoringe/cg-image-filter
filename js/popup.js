@@ -3,7 +3,14 @@ import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
 
-EXTENSION_NODES = ["ImageFilter", "TextImageFilter", "MaskImageFilter", "TextImageFilterWithExtras"]
+const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras"]
+const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras"]
+
+class Log {
+    static log(s) {
+        console.log(s)
+    }
+}
 
 class Popup extends HTMLSpanElement {
     constructor() {
@@ -29,22 +36,22 @@ class Popup extends HTMLSpanElement {
         this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel (X)"} )
         this.extras             = create('span', 'extras', this.buttons)
 
-        this.grid.addEventListener('click', this.on_click)
-    
+        this.grid.addEventListener('click', this.on_click.bind(this))
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
-
-        document.addEventListener('keypress', (e)=>{ this.on_keypress(e) })
+        document.addEventListener('keypress', this.on_keypress.bind(this) )
+        
         document.body.appendChild(this)
         this.close()
     }
 
-    _send_response(msg) {
+    _send_response(msg, no_extras) {
         const body = new FormData();
         var response = msg
-        Array.from(this.extras.children).forEach((e)=>{ response = response + "|||" + e.value })
+        if (!no_extras) Array.from(this.extras.children).forEach((e)=>{ response = response + "|||" + e.value })
         body.append('response', response);
         api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
+        Log.log(`"Sent ${JSON.stringify(response)}`)
         this.close()
     }
 
@@ -68,31 +75,42 @@ class Popup extends HTMLSpanElement {
     }
 
     handle_message(message) { 
-        const detail = message.detail
-        this.allsame = detail.allsame || false
-
-        if (detail.uid) {
-            const node = app.graph._nodes_by_id[detail.uid]
-            if (!node) return
-            const type = nodeType.type ?? nodeType.comfyClass;
-            if (!EXTENSION_NODES.includes(type)) return
+        if (!message.detail?.tick) Log.log(`Got ${JSON.stringify(message.detail)}`)
+        if (this.handling_message && !detail.timeout) {
+            Log.log(`Already handling a message, so dropped message`)
+            return
         }
+        this.handling_message = true
+        try {
+            const detail = message.detail
+            this.allsame = detail.allsame || false
 
-        if (detail.timeout)       this.handle_timeout(detail)
-        else if (detail.tick)     this.handle_tick(detail)
-        else if (detail.maskedit) this.handle_maskedit(detail) 
-        else if (detail.urls)     this.handle_urls(detail)
+            if (detail.uid) {
+                const node = app.graph._nodes_by_id[detail.uid]
+                if (!node) return
+                if (!EXTENSION_NODES.includes(node.type)) return
+            } else {
+                Log.log("Alien message")
+            }
+
+            if (detail.timeout)       this.handle_timeout(detail)
+            else if (detail.tick)     this.handle_tick(detail)
+            else if (detail.maskedit) this.handle_maskedit(detail) 
+            else if (detail.urls)     this.handle_urls(detail)
+        } finally { this.handling_message = false }  
     }
 
     reshow_window() {
-        this._send_response("-1")
+        Log.log('requesting reshow')
+        this._send_response("-1", true)
     }
 
     handle_timeout(detail) { this.close() }
 
     handle_tick(detail) { 
         this.counter.innerText = `${detail.tick} s` 
-        if (this.n_images && this.classList.contains('hidden')) this.reshow_window()
+        const node = app.graph._nodes_by_id[detail.uid]
+        if (POPUP_NODES.includes(node.type) && this.classList.contains('hidden')) this.reshow_window()
     }
 
     handle_maskedit(detail) {

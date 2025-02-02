@@ -16,27 +16,29 @@ import torch
 @PromptServer.instance.routes.post('/cg-image-filter-message')
 async def cg_image_filter_message(request):
     post = await request.post()
-    Message.data = post.get("response")
+    response = post.get("response")
+    if (Message.data is None or response!="-1"):
+        Message.data = response
     return web.json_response({})
 
-def wait(secs):
+def wait(secs, uid):
     Message.data = None
     end_time = time.monotonic() + secs
     while(time.monotonic() < end_time and Message.data is None): 
         throw_exception_if_processing_interrupted()
-        PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic())})
+        PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic()), "uid": uid})
         time.sleep(0.2)
     response = Message.data
     if response is None:
-        PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True})
+        PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "uid": uid})
     Message.data = None
     return response
 
-def send_with_resend(payload, timeout):
+def send_with_resend(payload, timeout, uid):
     response = "-1"
     while response == "-1":
         PromptServer.instance.send_sync("cg-image-filter-images", payload)
-        response = wait(timeout)
+        response = wait(timeout, uid)
     return response
 
 def mask_to_image(mask:torch.Tensor):
@@ -83,7 +85,7 @@ class ImageFilter(PreviewImage):
         urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "allsame":all_the_same}
 
-        response = send_with_resend(payload, timeout)
+        response = send_with_resend(payload, timeout, uid)
 
         if not response:
             if ontimeout=='send none': response = ""
@@ -132,7 +134,7 @@ class TextImageFilter(PreviewImage):
         payload = {"uid": uid, "urls":urls, "text":text}
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
 
-        response = send_with_resend(payload, timeout)
+        response = send_with_resend(payload, timeout, uid)
 
         return (image, response)
     
@@ -169,7 +171,7 @@ class TextImageFilterWithExtras(PreviewImage):
         payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3]}
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
 
-        response = send_with_resend(payload, timeout)
+        response = send_with_resend(payload, timeout, uid)
         response = response.split("|||") if response else [text, extra1, extra2, extra3]
 
         return (image, *response) 
@@ -203,7 +205,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
     def func(self, image, timeout, uid, if_no_mask, **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "maskedit":True}
-        response = send_with_resend(payload, timeout)
+        response = send_with_resend(payload, timeout, uid)
         
         if (response):
             try:
