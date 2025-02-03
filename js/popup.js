@@ -3,8 +3,9 @@ import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
 
-const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras"]
-const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras"]
+const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
+const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras",]
+const MASK_NODES = ["Mask Image Filter",]
 
 class Log {
     static log(s) {
@@ -40,7 +41,7 @@ class Popup extends HTMLSpanElement {
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
         document.addEventListener('keypress', this.on_keypress.bind(this) )
-        
+
         document.body.appendChild(this)
         this.close()
     }
@@ -107,10 +108,18 @@ class Popup extends HTMLSpanElement {
 
     handle_timeout(detail) { this.close() }
 
+    window_not_showing(uid) {
+        const node = app.graph._nodes_by_id[uid]
+        return (
+            (POPUP_NODES.includes(node.type) && this.classList.contains('hidden')) ||
+            (MASK_NODES.includes(node.type) && !document.getElementById('maskEditor')) ||
+            (MASK_NODES.includes(node.type) && document.getElementById('maskEditor')?.style.display == 'none') 
+        )
+    }
+
     handle_tick(detail) { 
+        if (this.window_not_showing(detail.uid)) this.reshow_window()
         this.counter.innerText = `${detail.tick} s` 
-        const node = app.graph._nodes_by_id[detail.uid]
-        if (POPUP_NODES.includes(node.type) && this.classList.contains('hidden')) this.reshow_window()
     }
 
     handle_maskedit(detail) {

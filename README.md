@@ -1,6 +1,22 @@
-# cg-image-filter
+# CG Image Filter
 
 A set of four nodes designed to pause execution of the workflow to allow you to make selections and/or edits before continuing.
+There's an example workflow that illustrates all of them at the end.
+
+- 'Image Filter' - pause the flow and pick which images from a set you want to proceed with
+- 'Mask Image Filter' - launch the mask editor for the image, and return the image and mask
+- 'Text Image Filter' - show the image with some editable text which is returned
+- 'Text Image Filter witrh Extras' - as 'Text Image Filter' but with three extra single line texts fields that are also returned
+
+## Examples of what you might do with them
+
+- Generate an image or batch, and select which ones you want before spending the time upscaling
+- Generate an image and pick part of it to inpaint all in one go (the example workflow below does this)
+- Edit auto-generated captions before saving them
+- Iterate through a folder of images, picking a masked area to inpaint (and the inpainting prompt) for each
+- you ideas here...
+
+---
 
 ## Image Filter
 
@@ -25,19 +41,20 @@ Here's a simple use: generate a batch of images and pick which ones you want to 
 
 ![workflow](images/workflow.png)
 
-### Extra bits
+### Checkboxes
 
-The "Click to send" option can be used when you know you want to send at most one image. 
-When checked, clicking an image selects it and sends it in a single action.
+- 'Click to send': clicking an image also sends it
+- 'autosend one if identical': automatically send a single image if all the images are identical
+- 'play sound': play a chime when the window pops up (the sound played is 'ding.mp3' from the 'js' folder)
 
-If all the images are identical, you can set the filter to automatically pass one of them through.
-
-Have a sound play when the window pops up - select the checkbox. 
-The sound played is 'ding.mp3' from the 'js' folder, so feel free to change it.
+### Optional inputs
 
 The Latent and Mask inputs are optional. If used, they should have the same number of latents (or masks) as the image batch, 
-and the latents (or masks) corresponding to the selected images will also be output. Use this if (for instance) you want to 
-select from a batch of images, but the next stage uses the latent - that way you avoid the decode-recode loss.
+and the latents (or masks) corresponding to the selected images will be output. Use this if (for instance) you want to 
+select from a batch of images, but the next stage uses the latent - that way you avoid the decode-recode loss, or if you want
+to pick a mask (perhaps from options automatically generated)
+
+---
 
 ## Mask Image Filter
 
@@ -52,6 +69,8 @@ mask the bit you don't like, before doing an img2img step.
 
 Again, there is a timeout, and if you don't save a mask before the end of the timeout (or if you press the cancel button in the mask editor), 
 it will either cancel, or send a blank mask, depending on the option chosen.
+
+---
 
 ## Text Image Filter
 
@@ -70,6 +89,24 @@ Just like the Text Image Filter, but with three extra text fields, intended for 
 
 They are all strings, so you'll probably need to run the output through some sort of conversion node.
 
-## Feedback
+---
 
-Bugs and ideas welcome in the [GitHub](https://github.com/chrisgoringe/cg-image-filter/issues)
+# Example Workflow
+
+![image](images/three%20filters.png)
+
+This workflow:
+- generates an image
+- uses 'Mask Image Filter' to allow you to mask part of the image for inpainting
+- uses 'Text Image Filter with Extras' to enter a prompt (and negative prompt) for the inpainting
+- inpaints
+- uses 'Image Filter' to choose which, if either, of the two images (before and after inpaint) to save
+
+The workflow is embedded in this seahorse in a bottle:
+
+![image](images/seahorse.png)
+
+# Bugs, Ideas, and the future
+
+Take a look at the [issues list](https://github.com/chrisgoringe/cg-image-filter/issues) to see what I'm thinking of,
+to report problems, or to make suggestions.
