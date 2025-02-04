@@ -184,7 +184,7 @@ class Popup extends HTMLSpanElement {
                 create('img', null, this.overlaygrid, {src:mask_url})
             }
             img.onload = this.layout.bind(this)
-            if (this.n_images>1)  img.clickableImage = i
+            img.clickableImage = i
         })
         
         if (this.doing_text) { this.text_edit = create('textarea', 'text_edit', this.grid, {"innerHTML":detail.text}) }
