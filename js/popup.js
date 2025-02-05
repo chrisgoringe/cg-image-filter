@@ -36,6 +36,7 @@ class Popup extends HTMLSpanElement {
         this.send_button        = create('button', 'control', this.buttons, {innerText:"Send (S)"} )
         this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel (X)"} )
         this.extras             = create('span', 'extras', this.buttons)
+        this.tip                = create('span', 'tip', this.buttons)
 
         this.grid.addEventListener('click', this.on_click.bind(this))
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
@@ -43,16 +44,19 @@ class Popup extends HTMLSpanElement {
         document.addEventListener('keypress', this.on_keypress.bind(this) )
 
         document.body.appendChild(this)
+        this.last_response_sent = 0
         this.close()
     }
 
     _send_response(msg, no_extras) {
+        if (Date.now()-this.last_response_sent < 1000) return 
         const body = new FormData();
         var response = msg
         if (!no_extras) Array.from(this.extras.children).forEach((e)=>{ response = response + "|||" + e.value })
         body.append('response', response);
         api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
         Log.log(`"Sent ${JSON.stringify(response)}`)
+        if (!no_extras) this.last_response_sent = Date.now()
         this.close()
     }
 
@@ -70,13 +74,19 @@ class Popup extends HTMLSpanElement {
     close() { 
         this.classList.add('hidden') 
         this.counter.classList.add('hidden') 
+        this.tip.innerHTML = ""
         this.active = false
         if (document.getElementById('maskEditor')) document.getElementById('maskEditor').style.display = 'none'
         this.n_images = 0
     }
 
     handle_message(message) { 
+
         if (!message.detail?.tick) Log.log(`Got ${JSON.stringify(message.detail)}`)
+        if (Date.now()-this.last_response_sent < 1000) {
+            Log.log(`Ignoring message because we just responded`)
+            return 
+        }        
         if (this.handling_message && !detail.timeout) {
             Log.log(`Already handling a message, so dropped message`)
             return
@@ -98,6 +108,9 @@ class Popup extends HTMLSpanElement {
             else if (detail.tick)     this.handle_tick(detail)
             else if (detail.maskedit) this.handle_maskedit(detail) 
             else if (detail.urls)     this.handle_urls(detail)
+
+            if (detail.tip) this.handle_tip(detail)
+
         } finally { this.handling_message = false }  
     }
 
@@ -107,6 +120,8 @@ class Popup extends HTMLSpanElement {
     }
 
     handle_timeout(detail) { this.close() }
+
+    handle_tip(detail) { this.tip.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>') }
 
     window_not_showing(uid) {
         const node = app.graph._nodes_by_id[uid]

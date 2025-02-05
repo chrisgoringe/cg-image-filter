@@ -6,15 +6,17 @@
 """
 
 from .image_filter import ImageFilter, TextImageFilter, MaskImageFilter, TextImageFilterWithExtras
+from .split_by_commas import SplitByCommas
 
-VERSION = "1.1.2"
+VERSION = "1.1.3"
 WEB_DIRECTORY = "./js"
 
 NODE_CLASS_MAPPINGS= {
     "Image Filter": ImageFilter,
     "Text Image Filter": TextImageFilter,
     "Text Image Filter with Extras": TextImageFilterWithExtras,
-    "Mask Image Filter": MaskImageFilter
+    "Mask Image Filter": MaskImageFilter,
+    "Split String by Commas": SplitByCommas
 }
 
 __all__ = ["NODE_CLASS_MAPPINGS", "WEB_DIRECTORY"]

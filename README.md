@@ -3,10 +3,12 @@
 A set of four nodes designed to pause execution of the workflow to allow you to make selections and/or edits before continuing.
 There's an example workflow that illustrates all of them at the end.
 
-- 'Image Filter' - pause the flow and pick which images from a set you want to proceed with
-- 'Mask Image Filter' - launch the mask editor for the image, and return the image and mask
-- 'Text Image Filter' - show the image with some editable text which is returned
-- 'Text Image Filter witrh Extras' - as 'Text Image Filter' but with three extra single line texts fields that are also returned
+- ['Image Filter'](#image-filter) - pause the flow and pick which images from a set you want to proceed with
+- ['Mask Image Filter'](#mask-image-filter) - launch the mask editor for the image, and return the image and mask
+- ['Text Image Filter'](#text-image-filter) - show the image with some editable text which is returned
+- ['Text Image Filter with Extras'](#text-image-filter-with-extras) - as 'Text Image Filter' but with three extra single line texts fields that are also returned
+
+There's also a helper node, 'Split String by Commas' that can be used if you want more extra values.
 
 ## Examples of what you might do with them
 
@@ -83,11 +85,15 @@ generated. Here's a trivial workflow:
 
 ![text workflow](images/text%20workflow.png)
 
+
 ## Text Image Filter with Extras
 
 Just like the Text Image Filter, but with three extra text fields, intended for short form - like specifying the denoising you want on the next step.
 
-They are all strings, so you'll probably need to run the output through some sort of conversion node.
+They are all strings, so you'll probably need to run the output through some sort of conversion node. 
+If you need more than three, consider using the 'Split Text by Commas' helper node.
+
+If you use the optional 'tip' input, the contents will be displayed under the extras input fields, so you can remind yourself what they are for!
 
 ---
 

@@ -158,6 +158,7 @@ class TextImageFilterWithExtras(PreviewImage):
             },
             "optional": {
                 "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
+                "tip" : ("STRING", {"default":"", "tooltip": "Optional - if provided, will be displayed in popup window"})
             },
             "hidden": HIDDEN,
         }
@@ -166,9 +167,9 @@ class TextImageFilterWithExtras(PreviewImage):
     def IS_CHANGED(cls, **kwargs):
         return float("NaN")
     
-    def func(self, image, text, extra1, extra2, extra3, timeout, uid, mask=None, **kwargs):
+    def func(self, image, text, extra1, extra2, extra3, timeout, uid, mask=None, tip="", **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
-        payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3]}
+        payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3], "tip":tip}
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
 
         response = send_with_resend(payload, timeout, uid)

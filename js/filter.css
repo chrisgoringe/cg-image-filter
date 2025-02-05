@@ -41,6 +41,12 @@
     font-size: larger;
 }
 
+.cg_popup .tip {
+    display: block;
+    padding-top: 10px;
+    line-height: 20px;
+}
+
 .cg_popup .buttons {
     position: absolute;
     width:14%;
