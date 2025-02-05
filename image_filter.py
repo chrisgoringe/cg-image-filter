@@ -5,6 +5,15 @@ from comfy.model_management import InterruptProcessingException, throw_exception
 import time, os
 import torch
 
+REQUEST_RESHOW = "-1"
+REQUEST_TIMER_RESET = "-2"
+CANCEL = "-3"
+WAITING_FOR_RESPONSE = "-9"
+
+SPECIALS = [REQUEST_RESHOW, REQUEST_TIMER_RESET, CANCEL, WAITING_FOR_RESPONSE]
+
+class CancelledByUser(Exception): pass
+
 ##
 #
 # response should be a dict just containing key 'response' 
@@ -17,7 +26,7 @@ import torch
 async def cg_image_filter_message(request):
     post = await request.post()
     response = post.get("response")
-    if (Message.data is None or response!="-1"):
+    if (Message.data is None or response not in SPECIALS):
         Message.data = response
     return web.json_response({})
 
@@ -35,10 +44,11 @@ def wait(secs, uid):
     return response
 
 def send_with_resend(payload, timeout, uid):
-    response = "-1"
-    while response == "-1":
+    response = WAITING_FOR_RESPONSE
+    while response in SPECIALS:
         PromptServer.instance.send_sync("cg-image-filter-images", payload)
         response = wait(timeout, uid)
+        if response == CANCEL:  raise InterruptProcessingException()
     return response
 
 def mask_to_image(mask:torch.Tensor):

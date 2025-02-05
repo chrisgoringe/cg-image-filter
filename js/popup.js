@@ -7,6 +7,10 @@ const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter
 const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras",]
 const MASK_NODES = ["Mask Image Filter",]
 
+const REQUEST_RESHOW = "-1"
+const REQUEST_TIMER_RESET = "-2"
+const CANCEL = "-3"
+
 class Log {
     static log(s) {
         console.log(s)
@@ -21,6 +25,8 @@ class Popup extends HTMLSpanElement {
         this.classList.add('cg_popup')
         
         this.counter            = create('span', 'cg_counter hidden', document.body)
+        this.counter_text       = create('span', 'counter_text', this.counter)
+        this.counter_reset_button = create('button', 'counter_reset', this.counter, {innerText:"Reset"} )
         this.grid               = create('span', 'grid', this)
         this.overlaygrid        = create('span', 'grid overlaygrid', this)
         this.text_edit          = create()
@@ -41,6 +47,7 @@ class Popup extends HTMLSpanElement {
         this.grid.addEventListener('click', this.on_click.bind(this))
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
+        this.counter_reset_button.addEventListener('click', this.send_reset.bind(this) )
         document.addEventListener('keypress', this.on_keypress.bind(this) )
 
         document.body.appendChild(this)
@@ -69,7 +76,12 @@ class Popup extends HTMLSpanElement {
         else                 { this._send_response(Array.from(this.picked).join()) }
     }
     
-    send_cancel() { this._send_response('') }
+    send_cancel() { this._send_response(CANCEL, true) }
+
+    send_reset() { 
+        this.requested_resend = true
+        this.close()
+    }
 
     close() { 
         this.classList.add('hidden') 
@@ -82,7 +94,10 @@ class Popup extends HTMLSpanElement {
 
     handle_message(message) { 
 
-        if (!message.detail?.tick) Log.log(`Got ${JSON.stringify(message.detail)}`)
+        if (!message.detail?.tick) {
+            this.requested_resend = false
+            Log.log(`Got ${JSON.stringify(message.detail)}`)
+        }
         if (Date.now()-this.last_response_sent < 1000) {
             Log.log(`Ignoring message because we just responded`)
             return 
@@ -110,13 +125,14 @@ class Popup extends HTMLSpanElement {
             else if (detail.urls)     this.handle_urls(detail)
 
             if (detail.tip) this.handle_tip(detail)
+            
 
         } finally { this.handling_message = false }  
     }
 
     reshow_window() {
         Log.log('requesting reshow')
-        this._send_response("-1", true)
+        this._send_response(REQUEST_RESHOW, true)
     }
 
     handle_timeout(detail) { this.close() }
@@ -134,7 +150,7 @@ class Popup extends HTMLSpanElement {
 
     handle_tick(detail) { 
         if (this.window_not_showing(detail.uid)) this.reshow_window()
-        this.counter.innerText = `${detail.tick} s` 
+        this.counter_text.innerText = `${detail.tick} s` 
     }
 
     handle_maskedit(detail) {
@@ -154,7 +170,7 @@ class Popup extends HTMLSpanElement {
     }
 
     respond_after_maskeditor() {
-        if (document.getElementById('maskEditor').style.display == 'none') {
+        if (document.getElementById('maskEditor').style.display == 'none' && !this.requested_resend) {
             this._send_response(this.node.imgs[0].src)
         } else {
             setTimeout(this.respond_after_maskeditor.bind(this), 100)

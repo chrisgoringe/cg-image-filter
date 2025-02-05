@@ -18,6 +18,10 @@
     text-align: center;
 }
 
+.cg_counter .counter_text {}
+
+.cg_counter .counter_reset {}
+
 .cg_popup .grid {
     position: absolute;
     width:80%;
