@@ -8,7 +8,7 @@
 from .image_filter import ImageFilter, TextImageFilter, MaskImageFilter, TextImageFilterWithExtras
 from .split_by_commas import SplitByCommas
 
-VERSION = "1.1.3"
+VERSION = "1.1.4"
 WEB_DIRECTORY = "./js"
 
 NODE_CLASS_MAPPINGS= {

@@ -20,6 +20,10 @@ There's also a helper node, 'Split String by Commas' that can be used if you wan
 
 ---
 
+## Global Options
+
+In the main Comfy options, under 'ImageFilter', there is a setting to turn on or off the sound played when one of these nodes activates.
+
 ## Image Filter
 
 The image filter node pauses execution of the workflow while you choose which, if any, of the images produced, you want to progress.
@@ -47,7 +51,6 @@ Here's a simple use: generate a batch of images and pick which ones you want to 
 
 - 'Click to send': clicking an image also sends it
 - 'autosend one if identical': automatically send a single image if all the images are identical
-- 'play sound': play a chime when the window pops up (the sound played is 'ding.mp3' from the 'js' folder)
 
 ### Optional inputs
 

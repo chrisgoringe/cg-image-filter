@@ -37,8 +37,6 @@ class Popup extends HTMLSpanElement {
         this.click_sends_label  = create('label', 'control_text', this.checkboxes, {for:"click_sends", innerText:"click to send"})
         this.auto_send          = create('input', 'control', this.checkboxes, {type:"checkbox", id:"auto_send"})
         this.auto_send_label    = create('label', 'control_text', this.checkboxes, {for:"auto_send", innerText:"autosend one if identical"})
-        this.play_sound         = create('input', 'control', this.checkboxes, {type:"checkbox", id:"play_sound", checked:true})
-        this.play_sound_label   = create('label', 'control_text', this.checkboxes, {for:"play_sound", innerText:"play sound"})
         this.send_button        = create('button', 'control', this.buttons, {innerText:"Send (S)"} )
         this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel (X)"} )
         this.extras             = create('span', 'extras', this.buttons)
@@ -68,7 +66,7 @@ class Popup extends HTMLSpanElement {
     }
 
     maybe_play_sound() {
-        if (this.play_sound.checked) this.audio.play();
+        if (app.ui.settings.getSettingValue("ImageFilter.PlaySound")) this.audio.play();
     }
     
     send_current_state() {
