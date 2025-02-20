@@ -26,7 +26,7 @@ class StringToInt:
     def INPUT_TYPES(s):
         return {
             "required": { "string" : ("STRING", {"default":"", "forceInput":True, "tooltip":"whitespace will be stripped before parsing"}), },
-            "required": { "default" : ("INT", {"default":0}), "tooltip":"used if the string can't be parsed as an integer"}
+            "required": { "default" : ("INT", {"default":0, "tooltip":"used if the string can't be parsed as an integer"}), }
         }
     
     def func(self, string:str, default:int):
@@ -42,7 +42,7 @@ class StringToFloat:
     def INPUT_TYPES(s):
         return {
             "required": { "string" : ("STRING", {"default":"", "forceInput":True, "tooltip":"whitespace will be stripped before parsing"}), },
-            "required": { "default" : ("FLOAT", {"default":0.0}), "tooltip":"used if the string can't be parsed as an integer"}
+            "required": { "default" : ("FLOAT", {"default":0.0, "tooltip":"used if the string can't be parsed as an integer"}), },
         }
     
     def func(self, string:str, default:float):
