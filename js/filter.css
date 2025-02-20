@@ -79,7 +79,7 @@
 }
 
 .cg_popup .buttons button {
-    margin-top: 10px;
+    margin: 5px 0 5px 0;
     padding: 4px;
     display: block;
     width: 100px;
