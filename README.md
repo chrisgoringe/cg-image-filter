@@ -8,6 +8,8 @@ There's an example workflow that illustrates all of them at the end.
 - ['Text Image Filter'](#text-image-filter) - show the image with some editable text which is returned
 - ['Text Image Filter with Extras'](#text-image-filter-with-extras) - as 'Text Image Filter' but with three extra single line texts fields that are also returned
 
+*Update* 'Text Image Filter' and 'Text Image Filter with Extras' are now identical, and the extra text fields have been added to 'Image Filter' as well
+
 There's also a helper node, 'Split String by Commas' that can be used if you want more extra values.
 
 ## Examples of what you might do with them
@@ -88,13 +90,13 @@ generated. Here's a trivial workflow:
 
 ![text workflow](images/text%20workflow.png)
 
+---
 
-## Text Image Filter with Extras
+## Extras
 
-Just like the Text Image Filter, but with three extra text fields, intended for short form - like specifying the denoising you want on the next step.
+'Text Image Filter' and 'Image Filter', each provide three extra text fields, intended for short form - like specifying the denoising you want on the next step, or a prefix to save the file with.
 
-They are all strings, so you'll probably need to run the output through some sort of conversion node. 
-If you need more than three, consider using the 'Split Text by Commas' helper node.
+Some helpers are provided - a node that splits a string by a divider, and nodes to convert the string to an int or a float.
 
 If you use the optional 'tip' input, the contents will be displayed under the extras input fields, so you can remind yourself what they are for!
 

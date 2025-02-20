@@ -64,8 +64,8 @@ HIDDEN = {
         }
 
 class ImageFilter(PreviewImage):
-    RETURN_TYPES = ("IMAGE","LATENT","MASK")
-    RETURN_NAMES = ("images","latents","masks")
+    RETURN_TYPES = ("IMAGE","LATENT","MASK","STRING","STRING","STRING")
+    RETURN_NAMES = ("images","latents","masks","extra1","extra2","extra3")
     FUNCTION = "func"
     CATEGORY = "image_filter"
     OUTPUT_NODE = False
@@ -81,6 +81,10 @@ class ImageFilter(PreviewImage):
             "optional": {
                 "latents" : ("LATENT", {"tooltip": "Optional - if provided, will be output"}),
                 "masks" : ("MASK", {"tooltip": "Optional - if provided, will be output"}),
+                "tip" : ("STRING", {"default":"", "tooltip": "Optional - if provided, will be displayed in popup window"}),
+                "extra1" : ("STRING", {"default":""}),
+                "extra2" : ("STRING", {"default":""}),
+                "extra3" : ("STRING", {"default":""}),
             },
             "hidden": HIDDEN,
         }
@@ -89,19 +93,22 @@ class ImageFilter(PreviewImage):
     def IS_CHANGED(cls, **kwargs):
         return float("NaN")
     
-    def func(self, images, timeout, ontimeout, uid, latents=None, masks=None, **kwargs):
+    def func(self, images, timeout, ontimeout, uid, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, **kwargs):
         B = images.shape[0]
         all_the_same = ( B and all( (images[i]==images[0]).all() for i in range(1,B) )) 
         urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
-        payload = {"uid": uid, "urls":urls, "allsame":all_the_same}
+        payload = {"uid": uid, "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip}
 
         response = send_with_resend(payload, timeout, uid)
 
         if not response:
+            e1 = e2 = e3 = ""
             if ontimeout=='send none': response = ""
             if ontimeout=='send all': response = ",".join(list(str(x) for x in range(len(images))))
             if ontimeout=='send first': response = "0"
             if ontimeout=='send last': response = str(len(images)-1)
+        else:
+            response, e1, e2, e3 = response.split("|||")
 
         images_to_return = list(int(x) for x in response.split(",") if x)
 
@@ -112,41 +119,7 @@ class ImageFilter(PreviewImage):
         latents = {"samples": torch.stack(list(latents['samples'][i] for i in images_to_return))} if latents is not None else None
         masks = torch.stack(list(masks[i] for i in images_to_return)) if masks is not None else None
                 
-        return (images, latents, masks)
-    
-class TextImageFilter(PreviewImage):
-    RETURN_TYPES = ("IMAGE","STRING")
-    RETURN_NAMES = ("image","text")
-    FUNCTION = "func"
-    CATEGORY = "image_filter"
-    OUTPUT_NODE = False
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": { 
-                "image" : ("IMAGE", ), 
-                "text" : ("STRING", {"default":""}),
-                "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
-            },
-            "optional": {
-                "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
-            },
-            "hidden": HIDDEN,
-        }
-    
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        return float("NaN")
-    
-    def func(self, image, text, timeout, uid, mask=None, **kwargs):
-        urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
-        payload = {"uid": uid, "urls":urls, "text":text}
-        if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
-
-        response = send_with_resend(payload, timeout, uid)
-
-        return (image, response)
+        return (images, latents, masks, e1, e2, e3)
     
 class TextImageFilterWithExtras(PreviewImage):
     RETURN_TYPES = ("IMAGE","STRING","STRING","STRING","STRING")
@@ -161,14 +134,14 @@ class TextImageFilterWithExtras(PreviewImage):
             "required": { 
                 "image" : ("IMAGE", ), 
                 "text" : ("STRING", {"default":""}),
-                "extra1" : ("STRING", {"default":""}),
-                "extra2" : ("STRING", {"default":""}),
-                "extra3" : ("STRING", {"default":""}),
                 "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
             },
             "optional": {
                 "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
-                "tip" : ("STRING", {"default":"", "tooltip": "Optional - if provided, will be displayed in popup window"})
+                "tip" : ("STRING", {"default":"", "tooltip": "Optional - if provided, will be displayed in popup window"}),
+                "extra1" : ("STRING", {"default":""}),
+                "extra2" : ("STRING", {"default":""}),
+                "extra3" : ("STRING", {"default":""}),
             },
             "hidden": HIDDEN,
         }
@@ -177,7 +150,7 @@ class TextImageFilterWithExtras(PreviewImage):
     def IS_CHANGED(cls, **kwargs):
         return float("NaN")
     
-    def func(self, image, text, extra1, extra2, extra3, timeout, uid, mask=None, tip="", **kwargs):
+    def func(self, image, text, timeout, uid, extra1="", extra2="", extra3="", mask=None, tip="", **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3], "tip":tip}
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
