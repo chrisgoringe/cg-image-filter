@@ -237,12 +237,13 @@ class Popup extends HTMLSpanElement {
     }
 
     on_keypress(e) {
-        if (e.key=='!') {
+        if (e.key=='!' && app.ui.settings.getSettingValue("ImageFilter.ReshowWindow") && !this.contains(document.activeElement)) {
             this.reshow_window()
             return
         }
-        if (!this.active) return
-        if (this.doing_text) return
+
+        if (this.doing_text || !this.active) return
+        
         if (e.key=='x') {
             e.stopPropagation()
             e.preventDefault()

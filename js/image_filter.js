@@ -13,6 +13,12 @@ app.registerExtension({
             type: "boolean",
             defaultValue: true
         },
+        {
+            id: "ImageFilter.ReshowWindow",
+            name: "Pressing '!' reshows the window",
+            type: "boolean",
+            defaultValue: true
+        },
     ],
     setup() {
         create('link', null, document.getElementsByTagName('HEAD')[0], 
