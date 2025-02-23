@@ -179,6 +179,10 @@ class Popup extends HTMLSpanElement {
         return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}`)
     }
 
+    set_text_area_height(h) {
+        document.getElementsByClassName('cg_popup')[0].style.setProperty('--text_area_height', `${h}px`)
+    }
+
     handle_urls(detail) {
         this.n_extras = detail.extras ? detail.extras.length : 0
         this.extras.innerHTML = ''
@@ -193,6 +197,7 @@ class Popup extends HTMLSpanElement {
         }
 
         this.doing_text = (detail.text != null)
+        if (this.doing_text && detail.textareaheight) this.set_text_area_height(detail.textareaheight)
         this.n_images = detail.urls?.length
     
         this.active = true
@@ -216,7 +221,7 @@ class Popup extends HTMLSpanElement {
             img.clickableImage = i
         })
         
-        if (this.doing_text) { this.text_edit = create('textarea', 'text_edit', this.grid, {"innerHTML":detail.text}) }
+        if (this.doing_text) { this.text_edit = create('textarea', 'text_edit', this, {"innerHTML":detail.text}) }
         this.layout()
         this.classList.remove('hidden')
         this.counter.classList.remove('hidden')
@@ -263,7 +268,8 @@ class Popup extends HTMLSpanElement {
         const box = this.grid.getBoundingClientRect()
         var per_row
         if (!im_w || !im_h || !box.width || !box.height) {
-            per_row = Math.ceil(Math.sqrt(this.n_images))
+            setTimeout(this.layout.bind(this), 100)
+            return
         } else {
             var best_scale = 0
             var best_pick

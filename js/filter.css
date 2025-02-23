@@ -4,6 +4,7 @@
     height:100%;
     background-color: rgba(0, 0, 0, 0.95);
     z-index: 123456;
+    --text_area_height: 150px;
 }
 
 .cg_counter {
@@ -26,7 +27,7 @@
     position: absolute;
     width:80%;
     left:5%;
-    height:calc(90% - 150px);
+    height:calc(90% - var(--text_area_height));
     top:5%;
     display: grid;
     align-content: space-evenly;
@@ -91,8 +92,11 @@
 }
 
 .cg_popup .text_edit {
-    width: 100%;
-    height: 150px;
+    width: 90%;
+    height: var(--text_area_height);
+    position: absolute;
+    bottom: 0;
+    left: 5%;
 }
 
 .cg_popup.hidden {

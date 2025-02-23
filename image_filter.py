@@ -142,6 +142,7 @@ class TextImageFilterWithExtras(PreviewImage):
                 "extra1" : ("STRING", {"default":""}),
                 "extra2" : ("STRING", {"default":""}),
                 "extra3" : ("STRING", {"default":""}),
+                "textareaheight" : ("INT", {"default": 150, "min": 50, "max": 500, "tooltip": "Height of text area in pixels"}),
             },
             "hidden": HIDDEN,
         }
@@ -150,9 +151,10 @@ class TextImageFilterWithExtras(PreviewImage):
     def IS_CHANGED(cls, **kwargs):
         return float("NaN")
     
-    def func(self, image, text, timeout, uid, extra1="", extra2="", extra3="", mask=None, tip="", **kwargs):
+    def func(self, image, text, timeout, uid, extra1="", extra2="", extra3="", mask=None, tip="", textareaheight=None, **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3], "tip":tip}
+        if textareaheight is not None: payload['textareaheight'] = textareaheight
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
 
         response = send_with_resend(payload, timeout, uid)
