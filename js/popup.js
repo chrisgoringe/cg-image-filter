@@ -228,6 +228,7 @@ class Popup extends HTMLSpanElement {
         })
         
         this.text_edit.innerHTML = (this.doing_text) ? detail.text : ''
+        this.text_edit.value = (this.doing_text) ? detail.text : ''
         this.layout()
         this.classList.remove('hidden')
         this.counter.classList.remove('hidden')
