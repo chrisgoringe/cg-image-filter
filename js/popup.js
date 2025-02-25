@@ -204,6 +204,9 @@ class Popup extends HTMLSpanElement {
 
         this.doing_text = (detail.text != null)
         if (this.doing_text && detail.textareaheight) this.set_text_area_height(detail.textareaheight)
+        this.text_edit.style.display = (this.doing_text) ? 'block' : 'none'
+        this.text_edit.innerHTML = (this.doing_text) ? detail.text : ''
+        this.text_edit.value = (this.doing_text) ? detail.text : ''
         this.n_images = detail.urls?.length
     
         this.active = true
@@ -227,8 +230,7 @@ class Popup extends HTMLSpanElement {
             img.clickableImage = i
         })
         
-        this.text_edit.innerHTML = (this.doing_text) ? detail.text : ''
-        this.text_edit.value = (this.doing_text) ? detail.text : ''
+
         this.layout()
         this.classList.remove('hidden')
         this.counter.classList.remove('hidden')
