@@ -104,7 +104,9 @@ class ImageFilter(PreviewImage):
         response = send_with_resend(payload, timeout, uid)
 
         if not response:
-            e1 = e2 = e3 = ""
+            e1 = extra1
+            e2 = extra2
+            e3 = extra3
             if ontimeout=='send none': response = ""
             if ontimeout=='send all': response = ",".join(list(str(x) for x in range(len(images))))
             if ontimeout=='send first': response = "0"

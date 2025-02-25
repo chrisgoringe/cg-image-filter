@@ -29,7 +29,7 @@ class Popup extends HTMLSpanElement {
         this.counter_reset_button = create('button', 'counter_reset', this.counter, {innerText:"Reset"} )
         this.grid               = create('span', 'grid', this)
         this.overlaygrid        = create('span', 'grid overlaygrid', this)
-        this.text_edit          = create()
+        this.text_edit          = create('textarea', 'text_edit', this)
         this.title_bar          = create('span', 'title', this)
         this.buttons            = create('span', 'buttons', this)
         this.checkboxes         = create('span', null, this.buttons)
@@ -227,7 +227,7 @@ class Popup extends HTMLSpanElement {
             img.clickableImage = i
         })
         
-        if (this.doing_text) { this.text_edit = create('textarea', 'text_edit', this, {"innerHTML":detail.text}) }
+        this.text_edit.innerHTML = (this.doing_text) ? detail.text : ''
         this.layout()
         this.classList.remove('hidden')
         this.counter.classList.remove('hidden')
