@@ -26,8 +26,10 @@ class CancelledByUser(Exception): pass
 async def cg_image_filter_message(request):
     post = await request.post()
     response = post.get("response")
-    if (Message.data is None or response not in SPECIALS):
+    if (Message.data is None or (Message.data != CANCEL and response not in SPECIALS)):
         Message.data = response
+    else:
+        print(f"Ignoring response {response} as current response is {Message.data}")
     return web.json_response({})
 
 def wait(secs, uid):
