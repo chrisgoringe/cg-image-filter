@@ -164,10 +164,16 @@ class Popup extends HTMLSpanElement {
         this.maybe_play_sound()
         ComfyApp.open_maskeditor()
         this.counter.classList.remove('hidden')
-        setTimeout(this.respond_after_maskeditor.bind(this), 1000)
+        setTimeout(this.respond_after_maskeditor.bind(this), 200)
     }
 
     respond_after_maskeditor() {
+        const cancel_button = document.getElementById("maskEditor_topBarCancelButton")
+        if (!cancel_button.filter_listener_added) {
+            cancel_button.addEventListener('click', (e)=>{ this.send_cancel() })
+            cancel_button.filter_listener_added = true
+        }
+
         if (document.getElementById('maskEditor').style.display == 'none' && !this.requested_resend) {
             this._send_response(this.node.imgs[0].src)
         } else {
