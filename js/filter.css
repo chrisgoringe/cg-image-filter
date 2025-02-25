@@ -92,11 +92,11 @@
 }
 
 .cg_popup .text_edit {
-    width: 90%;
-    height: var(--text_area_height);
     position: absolute;
-    bottom: 0;
-    padding: 5px 10px 5px 10px;
+    width: 80%;
+    left: 10%;
+    bottom: 10px;
+    height: calc(var(--text_area_height) - 20px);
 }
 
 .cg_popup.hidden {
