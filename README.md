@@ -12,7 +12,11 @@ There's an example workflow that illustrates all of them at the end.
 
 There's also a helper node, 'Split String by Commas' that can be used if you want more extra values.
 
-*New in 1.1.6* `Pick from List` to allow you to select matching items from any list, and `Batch from Image List` to work with image batches.
+*New in 1.1.6* 
+
+- `Pick from List` to allow you to select matching items from any list
+- `Batch from Image List` to work with image batches
+- hover mouse over image and press space to zoom, space again to close the zoom
 
 ## Examples of what you might do with them
 
