@@ -29,6 +29,8 @@ class Popup extends HTMLSpanElement {
         this.counter_reset_button = create('button', 'counter_reset', this.counter, {innerText:"Reset"} )
         this.grid               = create('span', 'grid', this)
         this.overlaygrid        = create('span', 'grid overlaygrid', this)
+        this.zoomed             = create('span', 'zoomed', this)
+        this.zoomed_image       = create('img', 'zoomed_image', this.zoomed)
         this.text_edit          = create('textarea', 'text_edit', this)
         this.title_bar          = create('span', 'title', this)
         this.buttons            = create('span', 'buttons', this)
@@ -37,8 +39,8 @@ class Popup extends HTMLSpanElement {
         this.click_sends_label  = create('label', 'control_text', this.checkboxes, {for:"click_sends", innerText:"click to send"})
         this.auto_send          = create('input', 'control', this.checkboxes, {type:"checkbox", id:"auto_send"})
         this.auto_send_label    = create('label', 'control_text', this.checkboxes, {for:"auto_send", innerText:"autosend one if identical"})
-        this.send_button        = create('button', 'control', this.buttons, {innerText:"Send (S)"} )
-        this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel (X)"} )
+        this.send_button        = create('button', 'control', this.buttons, {innerText:"Send"} )
+        this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel"} )
         this.extras             = create('span', 'extras', this.buttons)
         this.tip                = create('span', 'tip', this.buttons)
 
@@ -46,7 +48,8 @@ class Popup extends HTMLSpanElement {
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
         this.counter_reset_button.addEventListener('click', this.send_reset.bind(this) )
-        document.addEventListener('keypress', this.on_keypress.bind(this) )
+
+        document.addEventListener("keypress", this.on_key_press.bind(this))
 
         document.body.appendChild(this)
         this.last_response_sent = 0
@@ -88,6 +91,7 @@ class Popup extends HTMLSpanElement {
         this.active = false
         if (document.getElementById('maskEditor')) document.getElementById('maskEditor').style.display = 'none'
         this.n_images = 0
+        this.hide_zoom()
     }
 
     handle_message(message) { 
@@ -228,6 +232,8 @@ class Popup extends HTMLSpanElement {
             }
             img.onload = this.layout.bind(this)
             img.clickableImage = i
+            img.addEventListener('mouseover', (e)=>this.on_mouse_enter(img))
+            img.addEventListener('mouseout', (e)=>this.on_mouse_out(img))
         })
         
 
@@ -235,6 +241,35 @@ class Popup extends HTMLSpanElement {
         this.classList.remove('hidden')
         this.counter.classList.remove('hidden')
         this.maybe_play_sound()
+    }
+
+    on_mouse_enter(img) {
+        this.mouse_is_over = img
+        img.classList.add('hover')
+    }
+
+    on_mouse_out(img) {
+        if (this.zoom_showing) return
+        this.mouse_is_over = null
+        img.classList.remove('hover')        
+    }
+
+    hide_zoom() {
+        this.zoomed.style.display = "none"
+        this.zoom_showing = null
+        this.mouse_is_over = null
+    }
+
+    on_key_press(e) {
+        if (e.key==' ') {
+            if (this.zoom_showing) {
+                this.hide_zoom()
+            } else if (this.mouse_is_over) {
+                this.zoom_showing = this.mouse_is_over
+                this.zoomed.style.display = "block"
+                this.zoomed_image.src = this.zoom_showing.src
+            }
+        }
     }
 
     on_click(e) {
@@ -247,25 +282,6 @@ class Popup extends HTMLSpanElement {
                 else this.picked.add(s)
                 this.redraw()
             }
-        }
-    }
-
-    on_keypress(e) {
-        if (e.key=='!' && app.ui.settings.getSettingValue("ImageFilter.ReshowWindow") && !this.contains(document.activeElement)) {
-            this.reshow_window()
-            return
-        }
-
-        if (this.doing_text || !this.active) return
-        
-        if (e.key=='x') {
-            e.stopPropagation()
-            e.preventDefault()
-            this.send_cancel()
-        } else if (e.key=='s' && picked.size>0) {
-            e.stopPropagation()
-            e.preventDefault()
-            this.send_current_state()
         }
     }
 
@@ -323,8 +339,6 @@ class Popup extends HTMLSpanElement {
 
         this.click_sends.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
         this.click_sends_label.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
-
-        this.send_button.innerText = (this.doing_text) ? 'Send' : 'Send (S)'
     }
 
 }
