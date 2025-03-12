@@ -1,7 +1,7 @@
 [project]
 name = "cg-image-filter"
 description = "A set of custom nodes that pause a workflow while you select images, add masks, or edit text."
-version = "1.1.5"
+version = "1.1.6"
 license = { file = "LICENSE" }
 
 [project.urls]

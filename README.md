@@ -12,6 +12,8 @@ There's an example workflow that illustrates all of them at the end.
 
 There's also a helper node, 'Split String by Commas' that can be used if you want more extra values.
 
+*New in 1.1.6* `Pick from List` to allow you to select matching items from any list, and `Batch from Image List` to work with image batches.
+
 ## Examples of what you might do with them
 
 - Generate an image or batch, and select which ones you want before spending the time upscaling
@@ -99,6 +101,18 @@ generated. Here's a trivial workflow:
 Some helpers are provided - a node that splits a string by a divider, and nodes to convert the string to an int or a float.
 
 If you use the optional 'tip' input, the contents will be displayed under the extras input fields, so you can remind yourself what they are for!
+
+---
+
+## Pick from List
+
+The `Image Filter` node outputs a string, `indexes`, which is a comma separated list of the indexes (0 based) of the images selected. Connect this to a `Pick from List` node, and connect a list of anything to the `anything` input, and the `Pick from List` node will output a list corresponding to the selected images.
+
+For instance, if you create a set of images using a list of prompts, this can be used to select the prompts that correspond to the selected images.
+
+So something like this:
+
+![image](images/fromlist.png)
 
 ---
 
