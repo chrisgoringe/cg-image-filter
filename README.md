@@ -15,7 +15,7 @@ There's also a helper node, 'Split String by Commas' that can be used if you wan
 *New in 1.1.6* 
 
 - `Pick from List` to allow you to select matching items from any list
-- `Batch from Image List` to work with image batches
+- `Batch from Image List` and `Image List from Batch` to work with image batches
 - hover mouse over image and press space to zoom, space again to close the zoom
 
 ## Examples of what you might do with them
@@ -98,6 +98,8 @@ generated. Here's a trivial workflow:
 
 ---
 
+# A few more things
+
 ## Extras
 
 'Text Image Filter' and 'Image Filter', each provide three extra text fields, intended for short form - like specifying the denoising you want on the next step, or a prefix to save the file with.
@@ -112,11 +114,19 @@ If you use the optional 'tip' input, the contents will be displayed under the ex
 
 The `Image Filter` node outputs a string, `indexes`, which is a comma separated list of the indexes (0 based) of the images selected. Connect this to a `Pick from List` node, and connect a list of anything to the `anything` input, and the `Pick from List` node will output a list corresponding to the selected images.
 
-For instance, if you create a set of images using a list of prompts, this can be used to select the prompts that correspond to the selected images.
+For instance, if you create a set of images using a list of prompts, this can be used to select the prompts that correspond to the selected images. But you might well want to batch the images if you did use lists - see below.
 
 So something like this:
 
 ![image](images/fromlist.png)
+
+---
+
+## Batch and List
+
+If you are using lists, each node will run once for each list. This means that normally you will want a single batch of images for the `Image Filter` (so if you generate a load of images using lists of, for instance, prompts, you will want to combine them with the helper node `Batch from Image List`)
+
+If you generate a batch of images and want to use the `Mask Image Filter` or `Text Image Filter`, which only show a single image, you will want to do the opposite - convert the batch to a list with `Image List From Batch`. Then the images will be shown sequentially.
 
 ---
 
