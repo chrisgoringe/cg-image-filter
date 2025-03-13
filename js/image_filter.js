@@ -14,10 +14,16 @@ app.registerExtension({
             defaultValue: true
         },
         {
-            id: "ImageFilter.ReshowWindow",
-            name: "Pressing '!' reshows the window",
+            id: "ImageFilter.ClickSends",
+            name: "In Image Filter clicking an image sends it",
             type: "boolean",
-            defaultValue: true
+            defaultValue: false
+        },
+        {
+            id: "ImageFilter.AutosendIdentical",
+            name: "In Image Filter, if all images are identical, autosend one",
+            type: "boolean",
+            defaultValue: false
         },
     ],
     setup() {

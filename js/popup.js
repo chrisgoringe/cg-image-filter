@@ -53,7 +53,20 @@ class Popup extends HTMLSpanElement {
 
         document.body.appendChild(this)
         this.last_response_sent = 0
-        this.close()
+        this.close(true)
+    }
+
+    update_checkboxes() {
+        try {
+            this.click_sends.checked = app.ui.settings.getSettingValue("ImageFilter.ClickSends")
+            this.auto_send.checked   = app.ui.settings.getSettingValue("ImageFilter.AutosendIdentical")
+        } catch {}
+    }
+    update_settings() {
+        try {
+            app.ui.settings.setSettingValue("ImageFilter.ClickSends", this.click_sends.checked)
+            app.ui.settings.setSettingValue("ImageFilter.AutosendIdentical", this.auto_send.checked)
+        } catch {}           
     }
 
     _send_response(msg, no_extras) {
@@ -84,7 +97,7 @@ class Popup extends HTMLSpanElement {
         this.close()
     }
 
-    close() { 
+    close(initial_close) { 
         this.classList.add('hidden') 
         this.counter.classList.add('hidden') 
         this.tip.innerHTML = ""
@@ -92,6 +105,7 @@ class Popup extends HTMLSpanElement {
         if (document.getElementById('maskEditor')) document.getElementById('maskEditor').style.display = 'none'
         this.n_images = 0
         this.hide_zoom()
+        if (!initial_close) this.update_settings()
     }
 
     handle_message(message) { 
@@ -194,6 +208,7 @@ class Popup extends HTMLSpanElement {
     }
 
     handle_urls(detail) {
+        this.update_checkboxes()
         this.n_extras = detail.extras ? detail.extras.length : 0
         this.extras.innerHTML = ''
         for (let i=0; i<this.n_extras; i++) {
@@ -334,8 +349,8 @@ class Popup extends HTMLSpanElement {
 
         this.cancel_button.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
 
-        this.auto_send.style.visibility = (this.n_images>1) ? 'visible' : 'hidden'
-        this.auto_send_label.style.visibility = (this.n_images>1) ? 'visible' : 'hidden'
+        this.auto_send.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
+        this.auto_send_label.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
 
         this.click_sends.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
         this.click_sends_label.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
