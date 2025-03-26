@@ -116,14 +116,17 @@ class Popup extends HTMLSpanElement {
         if (is_mask || this.mask_editor_showing()) {
             this.classList.add('hidden')
             this.tiny_window.classList.add('hidden')
+            this.counter.classList.remove('hidden')   
             return             
         }
         if (this.is_big) {
             this.classList.remove('hidden')
             this.tiny_window.classList.add('hidden')
+            this.counter.classList.remove('hidden')   
         } else {
             this.classList.add('hidden')
-            this.tiny_window.classList.remove('hidden')            
+            this.tiny_window.classList.remove('hidden')         
+            this.counter.classList.add('hidden')   
         }
     }
 
@@ -219,6 +222,8 @@ class Popup extends HTMLSpanElement {
 
         if (document.getElementById('maskEditor').style.display == 'none' && !this.requested_resend) {
             this._send_response(this.node.imgs[0].src)
+            this.classList.add('hidden')
+            this.tiny_window.classList.add('hidden')
         } else {
             setTimeout(this.respond_after_maskeditor.bind(this), 100)
         }
