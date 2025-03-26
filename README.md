@@ -12,6 +12,11 @@ There's an example workflow that illustrates all of them at the end.
 
 There's also a helper node, 'Split String by Commas' that can be used if you want more extra values.
 
+*New in 1.2*
+
+- Options have all moved to the main settings
+- New option to show a miniature window instead of taking over the screen - click on it to go into full screen mode
+
 *New in 1.1.6* 
 
 - `Pick from List` to allow you to select matching items from any list
@@ -30,7 +35,13 @@ There's also a helper node, 'Split String by Commas' that can be used if you wan
 
 ## Global Options
 
-In the main Comfy options, under 'ImageFilter', there is a setting to turn on or off the sound played when one of these nodes activates.
+![image](images/options.png)
+
+- **AutosendIdentical** In the ImageFilter node, if all images are identical (including if there is just one image) then send
+an image without user interaction. 
+- **ClickSends** In the ImageFilter node, clicking an image sends it instead of selecting it. Useful if you know you only ever want to send one image at most.
+- **PlaySound** Play a 'ding' sound when any of the filter nodes becomes active.
+- **SmallWindow** Instead of taking over the whole screen immediately, display a tiny version of the image in the top left. Click that image to go into the full screen mode.
 
 ## Image Filter
 

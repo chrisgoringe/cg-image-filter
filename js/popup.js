@@ -8,12 +8,48 @@ const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter wit
 const MASK_NODES = ["Mask Image Filter",]
 
 const REQUEST_RESHOW = "-1"
-const REQUEST_TIMER_RESET = "-2"
 const CANCEL = "-3"
 
 class Log {
-    static log(s) {
-        console.log(s)
+    static log(s) { if (s) console.log(s) }
+    static error(e) { console.error(e) }
+    static message_in(message, extra) {
+        if (message.detail && !message.detail.tick) Log.log(`--> ${JSON.stringify(message.detail)}` + (extra ? ` ${extra}` : ""))
+    }
+    static message_out(response, extra) {
+        Log.log(`"<-- ${JSON.stringify(response)}` + (extra ? ` ${extra}` : ""))
+    }
+}
+
+function get_full_url(url) {
+    return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}&r=${Math.random()}`)
+}
+
+class State {
+    static INACTIVE = 0
+    static TINY = 1
+    static MASK = 2
+    static FILTER = 3
+    static TEXT = 4
+    static ZOOMED = 5
+
+    static visible(item, value) {
+        if (value) item.classList.remove('hidden')
+        else item.classList.add('hidden')
+    }
+
+    static render(popup) {
+        const state = popup.state
+        State.visible(popup, (state==State.FILTER || state==State.TEXT || state==State.ZOOMED))
+        State.visible(popup.tiny_window, state==State.TINY)
+        State.visible(popup.counter, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
+        State.visible(popup.zoomed, state==State.ZOOMED)
+        State.visible(popup.text_edit, state==State.TEXT)
+        State.visible(popup.send_button, true /*!app.ui.settings.getSettingValue("ImageFilter.ClickSends")*/)
+
+        if (document.getElementById('maskEditor') && state!=State.MASK) {
+            document.getElementById('maskEditor').style.display = 'none'
+        }
     }
 }
 
@@ -24,9 +60,6 @@ class Popup extends HTMLSpanElement {
 
         this.classList.add('cg_popup')
         
-        this.counter            = create('span', 'cg_counter hidden', document.body)
-        this.counter_text       = create('span', 'counter_text', this.counter)
-        this.counter_reset_button = create('button', 'counter_reset', this.counter, {innerText:"Reset"} )
         this.grid               = create('span', 'grid', this)
         this.overlaygrid        = create('span', 'grid overlaygrid', this)
         this.zoomed             = create('span', 'zoomed', this)
@@ -35,149 +68,128 @@ class Popup extends HTMLSpanElement {
         this.title_bar          = create('span', 'title', this)
         this.buttons            = create('span', 'buttons', this)
         this.checkboxes         = create('span', null, this.buttons)
-        this.click_sends        = create('input', 'control', this.checkboxes, {type:"checkbox", id:"click_sends"})
-        this.click_sends_label  = create('label', 'control_text', this.checkboxes, {for:"click_sends", innerText:"click to send"})
-        this.auto_send          = create('input', 'control', this.checkboxes, {type:"checkbox", id:"auto_send"})
-        this.auto_send_label    = create('label', 'control_text', this.checkboxes, {for:"auto_send", innerText:"autosend one if identical"})
+
         this.send_button        = create('button', 'control', this.buttons, {innerText:"Send"} )
         this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel"} )
         this.extras             = create('span', 'extras', this.buttons)
         this.tip                = create('span', 'tip', this.buttons)
 
         this.tiny_window        = create('span', 'tiny_window hidden', document.body)
-        this.tiny_window.addEventListener('click', (e)=>{ this.is_big = true; this.big_or_small() })
+        this.tiny_image         = create('img', 'tiny_image', this.tiny_window)
+        this.tiny_window.addEventListener('click', this.handle_deferred_message.bind(this))
+
+        this.counter            = create('span', 'cg_counter hidden', document.body)
+        this.counter_text       = create('span', 'counter_text', this.counter)
+        this.counter_reset_button = create('button', 'counter_reset', this.counter, {innerText:"Reset"} )
 
         this.grid.addEventListener('click', this.on_click.bind(this))
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
-        this.counter_reset_button.addEventListener('click', this.send_reset.bind(this) )
+        this.counter_reset_button.addEventListener('click', this.request_reset.bind(this) )
 
         document.addEventListener("keypress", this.on_key_press.bind(this))
 
         document.body.appendChild(this)
         this.last_response_sent = 0
-        this.close(true)
+        this.state = State.INACTIVE
+        State.render(this)
     }
 
-    update_checkboxes() {
+    _send_response(msg, special_message, keep_open) {
+        if (Date.now()-this.last_response_sent < 1000) Log.message_out(response, "(throttled)")
+
+        if (!special_message) {
+            Array.from(this.extras.children).forEach((e)=>{ msg = msg + "|||" + e.value })
+            this.last_response_sent = Date.now()
+        }
+
         try {
-            this.click_sends.checked = app.ui.settings.getSettingValue("ImageFilter.ClickSends")
-            this.auto_send.checked   = app.ui.settings.getSettingValue("ImageFilter.AutosendIdentical")
-        } catch {}
-    }
-    update_settings() {
-        try {
-            app.ui.settings.setSettingValue("ImageFilter.ClickSends", this.click_sends.checked)
-            app.ui.settings.setSettingValue("ImageFilter.AutosendIdentical", this.auto_send.checked)
-        } catch {}           
+            const body = new FormData();
+            body.append('response', msg);
+            api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
+            Log.message_out(msg)
+        } catch (e) { Log.error(e) }
+        finally { if (!keep_open) this.close() }
+
     }
 
-    _send_response(msg, no_extras) {
-        if (Date.now()-this.last_response_sent < 1000) return 
-        const body = new FormData();
-        var response = msg
-        if (!no_extras) Array.from(this.extras.children).forEach((e)=>{ response = response + "|||" + e.value })
-        body.append('response', response);
-        api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
-        Log.log(`"Sent ${JSON.stringify(response)}`)
-        if (!no_extras) this.last_response_sent = Date.now()
-        this.close()
-    }
-
-    maybe_play_sound() {
-        if (app.ui.settings.getSettingValue("ImageFilter.PlaySound")) this.audio.play();
-    }
-    
-    send_current_state() {
-        if (this.doing_text) { this._send_response(this.text_edit.value) }
-        else                 { this._send_response(Array.from(this.picked).join()) }
-    }
+    send_current_state() { this._send_response( (this.state == State.TEXT) ? this.text_edit.value : Array.from(this.picked).join() ) }
     
     send_cancel() { this._send_response(CANCEL, true) }
 
-    send_reset() { 
-        this.requested_resend = true
-        this.close()
+    request_reset() { this._send_response(REQUEST_RESHOW, true, true) }
+
+    close() { 
+        this.state = State.INACTIVE
+        State.render(this)
     }
 
-    close(initial_close) { 
-        this.classList.add('hidden') 
-        this.counter.classList.add('hidden') 
-        this.tip.innerHTML = ""
-        this.active = false
-        if (document.getElementById('maskEditor')) document.getElementById('maskEditor').style.display = 'none'
-        this.n_images = 0
-        this.hide_zoom()
-        if (!initial_close) this.update_settings()
-        this.is_big = false
-    }
-
-    big_or_small(is_mask) {
-        if (is_mask || this.mask_editor_showing()) {
-            this.classList.add('hidden')
-            this.tiny_window.classList.add('hidden')
-            this.counter.classList.remove('hidden')   
-            return             
-        }
-        if (this.is_big) {
-            this.classList.remove('hidden')
-            this.tiny_window.classList.add('hidden')
-            this.counter.classList.remove('hidden')   
-        } else {
-            this.classList.add('hidden')
-            this.tiny_window.classList.remove('hidden')         
-            this.counter.classList.add('hidden')   
-        }
-    }
+    maybe_play_sound() { if (app.ui.settings.getSettingValue("ImageFilter.PlaySound")) this.audio.play(); }
 
     handle_message(message) { 
+        Log.message_in(message)
+        Log.log( this._handle_message(message, false) )
+        State.render(this)
+    }
 
-        if (!message.detail?.tick) {
-            this.requested_resend = false
-            Log.log(`Got ${JSON.stringify(message.detail)}`)
+    handle_deferred_message(e) {
+        Log.message_in(this.saved_message, "(deferred)")
+        Log.log( this._handle_message(this.saved_message, true) )
+        State.render(this)
+    }
+
+    autosend() {
+        return (app.ui.settings.getSettingValue("ImageFilter.AutosendIdentical") && this.allsame)
+    }
+
+    _handle_message(message, use_saved) {
+
+        this.allsame = message.detail.allsame || false
+
+        if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("ImageFilter.SmallWindow") && !use_saved && !this.autosend()) {
+            this.state = State.TINY
+            this.saved_message = message
+            this.tiny_image.src = get_full_url(message.detail.urls[message.detail.urls.length-1])
+            this.maybe_play_sound()
+            return `Deferring message and showing small window`
         }
-        if ((Date.now()-this.last_response_sent < 1000) && !message.detail.urls) {
-            Log.log(`Ignoring message because we just responded`)
-            return 
-        }        
-        if (this.handling_message && !detail.timeout) {
-            Log.log(`Already handling a message, so dropped message`)
-            return
-        }
+        
+        //if ((Date.now()-this.last_response_sent < 500)) return `Ignoring message because we just responded`
+        if (this.handling_message && !detail.timeout) return `Ignoring message because we're already handling a message`
         this.handling_message = true
+
         try {
             const detail = message.detail
-            this.allsame = detail.allsame || false
-            this.is_big = this.is_big || !(app.ui.settings.getSettingValue("ImageFilter.SmallWindow"))
 
             if (detail.uid) {
                 const node = app.graph._nodes_by_id[detail.uid]
-                if (!node) return
-                if (!EXTENSION_NODES.includes(node.type)) return
+                if (!node) return `Node ${detail.uid} not found`
+                if (!EXTENSION_NODES.includes(node.type)) return `Node ${detail.uid} is not an image filter node`
             } else {
-                Log.log("Alien message")
+                return `No uid in message`
             }
 
-            if (detail.timeout)       this.handle_timeout(detail)
-            else if (detail.tick)     this.handle_tick(detail)
-            else if (detail.maskedit) this.handle_maskedit(detail) 
-            else if (detail.urls)     this.handle_urls(detail)
+            if (detail.tick) {
+                this.counter_text.innerText = `${detail.tick}s`
+                return
+            }
 
-            if (detail.tip) this.handle_tip(detail)
-            this.big_or_small(!!detail.maskedit)
+            if (detail.timeout) {
+                this.close()
+                return `Timeout`
+            }
+
             
+            if (!use_saved && !this.autosend()) this.maybe_play_sound()
 
+            if (detail.maskedit)   this.handle_maskedit(detail) 
+            else if (detail.urls)  this.handle_urls(detail)
+
+            if (detail.tip) this.tip.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>')
+            else this.tip.innerHTML = ""
+            
         } finally { this.handling_message = false }  
     }
-
-    reshow_window() {
-        Log.log('requesting reshow')
-        this._send_response(REQUEST_RESHOW, true)
-    }
-
-    handle_timeout(detail) { this.close() }
-
-    handle_tip(detail) { this.tip.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>') }
 
     mask_editor_showing() {
         return document.getElementById('maskEditor')?.style.display != 'none'
@@ -192,13 +204,9 @@ class Popup extends HTMLSpanElement {
         )
     }
 
-    handle_tick(detail) { 
-        if (this.window_not_showing(detail.uid) && this.is_big) this.reshow_window()
-        this.counter_text.innerText = `${detail.tick} s` 
-    }
-
     handle_maskedit(detail) {
-        this.close()
+        this.state = State.MASK
+
         this.node = app.graph._nodes_by_id[detail.uid]
         this.node.imgs = []
         detail.urls.forEach((url, i)=>{ 
@@ -207,58 +215,46 @@ class Popup extends HTMLSpanElement {
         })
         ComfyApp.copyToClipspace(this.node)
         ComfyApp.clipspace_return_node = this.node
-        this.maybe_play_sound()
         ComfyApp.open_maskeditor()
-        this.counter.classList.remove('hidden')
-        setTimeout(this.respond_after_maskeditor.bind(this), 200)
+
+        setTimeout(this.wait_while_mask_editing.bind(this), 200)
     }
 
-    respond_after_maskeditor() {
+    wait_while_mask_editing() {
         const cancel_button = document.getElementById("maskEditor_topBarCancelButton")
         if (!cancel_button.filter_listener_added) {
             cancel_button.addEventListener('click', (e)=>{ this.send_cancel() })
             cancel_button.filter_listener_added = true
         }
 
-        if (document.getElementById('maskEditor').style.display == 'none' && !this.requested_resend) {
+        if (document.getElementById('maskEditor').style.display == 'none') {
             this._send_response(this.node.imgs[0].src)
-            this.classList.add('hidden')
-            this.tiny_window.classList.add('hidden')
         } else {
-            setTimeout(this.respond_after_maskeditor.bind(this), 100)
+            setTimeout(this.wait_while_mask_editing.bind(this), 100)
         }
-    }
-
-    get_full_url(url) {
-        return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}&r=${Math.random()}`)
-    }
-
-    set_text_area_height(h) {
-        document.getElementsByClassName('cg_popup')[0].style.setProperty('--text_area_height', `${h}px`)
     }
 
     handle_urls(detail) {
-        this.update_checkboxes()
         this.n_extras = detail.extras ? detail.extras.length : 0
         this.extras.innerHTML = ''
-        for (let i=0; i<this.n_extras; i++) {
-            const extra = create('input', 'extra', this.extras, {value:detail.extras[i]})
-        }
+        for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras, {value:detail.extras[i]}) }
 
         // do this after the extras are set up so that we send the right extras
-        if (this.auto_send.checked && this.allsame) {
+        if (this.autosend()) {
             this._send_response("0")
             return
         }
 
-        this.doing_text = (detail.text != null)
-        if (this.doing_text && detail.textareaheight) this.set_text_area_height(detail.textareaheight)
-        this.text_edit.style.display = (this.doing_text) ? 'block' : 'none'
-        this.text_edit.innerHTML = (this.doing_text) ? detail.text : ''
-        this.text_edit.value = (this.doing_text) ? detail.text : ''
-        this.n_images = detail.urls?.length
-    
-        this.active = true
+        if (detail.text != null) {
+            this.state = State.TEXT
+            //this.text_edit.innerHTML = detail.text
+            this.text_edit.value = detail.text
+            if (detail.textareaheight) document.getElementsByClassName('cg_popup')[0].style.setProperty('--text_area_height', `${detail.textareaheight}px`)
+        } else {
+            this.state = State.FILTER
+        }
+
+        this.n_images = detail.urls?.length    
         this.laidOut = false
         this.title_bar.innerText = app.graph._nodes_by_id[detail.uid]?.title ?? "Image Filter"
     
@@ -269,59 +265,45 @@ class Popup extends HTMLSpanElement {
         this.overlaygrid.innerHTML = ''
         detail.urls.forEach((url, i)=>{
             console.log(url)
-            const full_url = this.get_full_url(url)
-            const img = create('img', null, this.grid, {src:full_url})
-            console.log(`Added ${full_url}`)
-            if (detail.mask_urls) {
-                const mask_url = this.get_full_url(detail.mask_urls[i])
-                create('img', null, this.overlaygrid, {src:mask_url})
-            }
+            const img = create('img', null, this.grid, {src:get_full_url(url)})
+            if (detail.mask_urls) { create('img', null, this.overlaygrid, {src:get_full_url(detail.mask_urls[i])})}
             img.onload = this.layout.bind(this)
-            img.clickableImage = i
+            img.image_index = i
             img.addEventListener('mouseover', (e)=>this.on_mouse_enter(img))
             img.addEventListener('mouseout', (e)=>this.on_mouse_out(img))
         })
-        
 
         this.layout()
-        this.classList.remove('hidden')
-        this.counter.classList.remove('hidden')
-        this.maybe_play_sound()
+        
     }
 
     on_mouse_enter(img) {
         this.mouse_is_over = img
-        img.classList.add('hover')
+        this.redraw()
     }
 
     on_mouse_out(img) {
-        if (this.zoom_showing) return
         this.mouse_is_over = null
-        img.classList.remove('hover')        
-    }
-
-    hide_zoom() {
-        this.zoomed.style.display = "none"
-        this.zoom_showing = null
-        this.mouse_is_over = null
+        this.redraw()       
     }
 
     on_key_press(e) {
         if (e.key==' ') {
-            if (this.zoom_showing) {
-                this.hide_zoom()
+            if (this.state==State.ZOOMED) {
+                this.state = State.FILTER
             } else if (this.mouse_is_over) {
-                this.zoom_showing = this.mouse_is_over
-                this.zoomed.style.display = "block"
-                this.zoomed_image.src = this.zoom_showing.src
+                this.state = State.ZOOMED
+                this.zoomed_image.src = this.mouse_is_over.src
+                this.on_mouse_out(this.mouse_is_over)
             }
+            State.render(this)
         }
     }
 
     on_click(e) {
-        if (e.target.clickableImage != undefined) {
-            const s = `${e.target.clickableImage}`
-            if (this.click_sends.checked) {
+        if (e.target.image_index != undefined) {
+            const s = `${e.target.image_index}`
+            if (app.ui.settings.getSettingValue("ImageFilter.ClickSends")) {
                 this._send_response(s)
             } else {
                 if (this.picked.has(s)) this.picked.delete(s)
@@ -375,16 +357,10 @@ class Popup extends HTMLSpanElement {
         Array.from(this.grid.children).forEach((c,i)=>{
             if (this.picked.has(`${i}`)) c.classList.add('selected')
             else c.classList.remove('selected')
+
+            if (c == this.mouse_is_over) c.classList.add('hover')
+            else c.classList.remove('hover')
         }) 
-        this.send_button.disabled = (!this.doing_text && (this.click_sends.checked || this.picked.size==0))
-
-        this.cancel_button.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
-
-        this.auto_send.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
-        this.auto_send_label.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
-
-        this.click_sends.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
-        this.click_sends_label.style.visibility = (this.doing_text) ? 'hidden' : 'visible'
     }
 
 }
