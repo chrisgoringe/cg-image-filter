@@ -44,6 +44,9 @@ class Popup extends HTMLSpanElement {
         this.extras             = create('span', 'extras', this.buttons)
         this.tip                = create('span', 'tip', this.buttons)
 
+        this.tiny_window        = create('span', 'tiny_window hidden', document.body)
+        this.tiny_window.addEventListener('click', (e)=>{ this.is_big = true; this.big_or_small() })
+
         this.grid.addEventListener('click', this.on_click.bind(this))
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
@@ -106,6 +109,17 @@ class Popup extends HTMLSpanElement {
         this.n_images = 0
         this.hide_zoom()
         if (!initial_close) this.update_settings()
+        this.is_big = false
+    }
+
+    big_or_small() {
+        if (this.is_big) {
+            this.classList.remove('hidden')
+            this.tiny_window.classList.add('hidden')
+        } else {
+            this.classList.add('hidden')
+            this.tiny_window.classList.remove('hidden')            
+        }
     }
 
     handle_message(message) { 
@@ -126,6 +140,7 @@ class Popup extends HTMLSpanElement {
         try {
             const detail = message.detail
             this.allsame = detail.allsame || false
+            this.is_big = this.is_big || !(app.ui.settings.getSettingValue("ImageFilter.SmallWindow"))
 
             if (detail.uid) {
                 const node = app.graph._nodes_by_id[detail.uid]
@@ -141,6 +156,7 @@ class Popup extends HTMLSpanElement {
             else if (detail.urls)     this.handle_urls(detail)
 
             if (detail.tip) this.handle_tip(detail)
+            this.big_or_small()
             
 
         } finally { this.handling_message = false }  

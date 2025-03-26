@@ -19,6 +19,15 @@
     text-align: center;
 }
 
+.tiny_window {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    left: 70px;
+    top: 70px;
+    background-color: salmon;
+}
+
 .cg_counter .counter_text {}
 
 .cg_counter .counter_reset {}

@@ -9,7 +9,7 @@ from .image_filter import ImageFilter, MaskImageFilter, TextImageFilterWithExtra
 from .list_utility_nodes import PickFromList, BatchFromImageList, ImageListFromBatch
 from .string_utility_nodes import SplitByCommas, StringToFloat, StringToInt
 
-VERSION = "1.1.6"
+VERSION = "1.1.7"
 WEB_DIRECTORY = "./js"
 
 NODE_CLASS_MAPPINGS= {

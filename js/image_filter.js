@@ -25,6 +25,12 @@ app.registerExtension({
             type: "boolean",
             defaultValue: false
         },
+        {
+            id: "ImageFilter.SmallWindow",
+            name: "Initially show a small popup instead of covering the screen",
+            type: "boolean",
+            defaultValue: false
+        },
     ],
     setup() {
         create('link', null, document.getElementsByTagName('HEAD')[0], 
