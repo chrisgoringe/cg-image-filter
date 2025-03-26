@@ -136,7 +136,7 @@ class Popup extends HTMLSpanElement {
             this.requested_resend = false
             Log.log(`Got ${JSON.stringify(message.detail)}`)
         }
-        if (Date.now()-this.last_response_sent < 1000) {
+        if ((Date.now()-this.last_response_sent < 1000) && !message.detail.urls) {
             Log.log(`Ignoring message because we just responded`)
             return 
         }        
@@ -271,6 +271,7 @@ class Popup extends HTMLSpanElement {
             console.log(url)
             const full_url = this.get_full_url(url)
             const img = create('img', null, this.grid, {src:full_url})
+            console.log(`Added ${full_url}`)
             if (detail.mask_urls) {
                 const mask_url = this.get_full_url(detail.mask_urls[i])
                 create('img', null, this.overlaygrid, {src:mask_url})
