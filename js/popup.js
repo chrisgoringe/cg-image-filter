@@ -112,7 +112,12 @@ class Popup extends HTMLSpanElement {
         this.is_big = false
     }
 
-    big_or_small() {
+    big_or_small(is_mask) {
+        if (is_mask || this.mask_editor_showing()) {
+            this.classList.add('hidden')
+            this.tiny_window.classList.add('hidden')
+            return             
+        }
         if (this.is_big) {
             this.classList.remove('hidden')
             this.tiny_window.classList.add('hidden')
@@ -156,7 +161,7 @@ class Popup extends HTMLSpanElement {
             else if (detail.urls)     this.handle_urls(detail)
 
             if (detail.tip) this.handle_tip(detail)
-            this.big_or_small()
+            this.big_or_small(!!detail.maskedit)
             
 
         } finally { this.handling_message = false }  
@@ -171,6 +176,10 @@ class Popup extends HTMLSpanElement {
 
     handle_tip(detail) { this.tip.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>') }
 
+    mask_editor_showing() {
+        return document.getElementById('maskEditor')?.style.display != 'none'
+    }
+
     window_not_showing(uid) {
         const node = app.graph._nodes_by_id[uid]
         return (
@@ -181,7 +190,7 @@ class Popup extends HTMLSpanElement {
     }
 
     handle_tick(detail) { 
-        if (this.window_not_showing(detail.uid)) this.reshow_window()
+        if (this.window_not_showing(detail.uid) && this.is_big) this.reshow_window()
         this.counter_text.innerText = `${detail.tick} s` 
     }
 
@@ -216,7 +225,7 @@ class Popup extends HTMLSpanElement {
     }
 
     get_full_url(url) {
-        return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}`)
+        return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}&r=${Math.random()}`)
     }
 
     set_text_area_height(h) {
