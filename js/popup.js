@@ -222,7 +222,7 @@ class Popup extends HTMLSpanElement {
 
     wait_while_mask_editing() {
         const cancel_button = document.getElementById("maskEditor_topBarCancelButton")
-        if (!cancel_button.filter_listener_added) {
+        if (cancel_button && !cancel_button.filter_listener_added) {
             cancel_button.addEventListener('click', (e)=>{ this.send_cancel() })
             cancel_button.filter_listener_added = true
         }
