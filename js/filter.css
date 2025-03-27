@@ -114,6 +114,10 @@
     background-color: rgba(29, 29, 29, 0.886);
 }
 
+.cg_popup .zoomed.hidden {
+    display: none;
+}
+
 .cg_popup .zoomed_image {
     width: 100%;
     height: 100%;
