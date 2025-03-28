@@ -1,8 +1,9 @@
 class SplitByCommas:
-    RETURN_TYPES = ("STRING","STRING","STRING","STRING","STRING")
+    RETURN_TYPES = ("STRING","STRING","STRING","STRING","STRING","STRING")
     FUNCTION = "func"
     CATEGORY = "image_filter/helpers"
     OUTPUT_NODE = False
+    OUTPUT_IS_LIST = [False, False, False, False, False, True]
 
     DESCRIPTION = "Split the input string into up to five pieces. Splits on commas (or | or ^) and then strips whitespace from front and end."
 
@@ -14,8 +15,9 @@ class SplitByCommas:
         }
     
     def func(self, string:str, split:str=","):
-        bits = [r.strip() for r in string.split(split,5)] + [""]*5
-        return tuple(bits[:5])
+        bits = [r.strip() for r in string.split(split,5)] 
+        padded = bits + [""]*5
+        return tuple(padded[:5] + [bits,])
     
 class StringToInt:
     RETURN_TYPES = ("INT",)
