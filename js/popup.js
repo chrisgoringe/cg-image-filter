@@ -227,7 +227,7 @@ class Popup extends HTMLSpanElement {
             cancel_button.filter_listener_added = true
         }
 
-        if (document.getElementById('maskEditor').style.display == 'none') {
+        if (document.getElementById('maskEditor')?.style.display == 'none') {
             this._send_response(this.node.imgs[0].src)
         } else {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
