@@ -15,6 +15,7 @@ class Log {
     static error(e) { console.error(e) }
     static message_in(message, extra) {
         if (message.detail && !message.detail.tick) Log.log(`--> ${JSON.stringify(message.detail)}` + (extra ? ` ${extra}` : ""))
+        if (message.detail && message.detail.tick) Log.log(`--> tick`)
     }
     static message_out(response, extra) {
         Log.log(`"<-- ${JSON.stringify(response)}` + (extra ? ` ${extra}` : ""))
@@ -96,7 +97,10 @@ class Popup extends HTMLSpanElement {
     }
 
     _send_response(msg, special_message, keep_open) {
-        if (Date.now()-this.last_response_sent < 1000) Log.message_out(msg, "(throttled)")
+        if (Date.now()-this.last_response_sent < 1000) {
+            Log.message_out(msg, "(throttled)")
+            return
+        }
 
         if (!special_message) {
             Array.from(this.extras.children).forEach((e)=>{ msg = msg + "|||" + e.value })

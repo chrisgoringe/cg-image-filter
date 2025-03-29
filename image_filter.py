@@ -27,22 +27,23 @@ async def cg_image_filter_message(request):
     post = await request.post()
     response = post.get("response")
     if (Message.data is None or (Message.data != CANCEL and response not in SPECIALS)):
-        Message.data = response
+        Message.setdata(response, "response")
     else:
         print(f"Ignoring response {response} as current response is {Message.data}")
     return web.json_response({})
 
 def wait(secs, uid):
-    Message.data = None
+    Message.setdata(None, "start of wait")
     end_time = time.monotonic() + secs
     while(time.monotonic() < end_time and Message.data is None): 
         throw_exception_if_processing_interrupted()
         PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic()), "uid": uid})
         time.sleep(0.2)
     response = Message.data
+    Message.setdata(None, "read response")
     if response is None:
         PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "uid": uid})
-    Message.data = None
+    
     return response
 
 def send_with_resend(payload, timeout, uid):
@@ -50,7 +51,8 @@ def send_with_resend(payload, timeout, uid):
     while response in SPECIALS:
         PromptServer.instance.send_sync("cg-image-filter-images", payload)
         response = wait(timeout, uid)
-        if response == CANCEL:  raise InterruptProcessingException()
+        if response == CANCEL:  
+            raise InterruptProcessingException()
     return response
 
 def mask_to_image(mask:torch.Tensor):
@@ -58,6 +60,10 @@ def mask_to_image(mask:torch.Tensor):
 
 class Message:
     data:str = None
+    @classmethod
+    def setdata(cls, v, comment):
+        print(f"Message.data set to {v} (${comment})")
+        cls.data = v
 
 HIDDEN = {
             "prompt": "PROMPT", 
@@ -206,5 +212,6 @@ class MaskImageFilter(PreviewImage, LoadImage):
             except FileNotFoundError:
                 pass
 
-        if if_no_mask == 'cancel': raise InterruptProcessingException()
+        if if_no_mask == 'cancel': 
+            raise InterruptProcessingException()
         return self.load_image(urls[0]['filename']+" [temp]")
