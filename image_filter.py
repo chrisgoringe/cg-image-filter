@@ -62,7 +62,7 @@ class Message:
     data:str = None
     @classmethod
     def setdata(cls, v, comment):
-        print(f"Message.data set to {v} (${comment})")
+        #print(f"Message.data set to {v} (${comment})")
         cls.data = v
 
 HIDDEN = {
