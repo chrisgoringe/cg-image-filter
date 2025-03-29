@@ -96,7 +96,7 @@ class Popup extends HTMLSpanElement {
     }
 
     _send_response(msg, special_message, keep_open) {
-        if (Date.now()-this.last_response_sent < 1000) Log.message_out(response, "(throttled)")
+        if (Date.now()-this.last_response_sent < 1000) Log.message_out(msg, "(throttled)")
 
         if (!special_message) {
             Array.from(this.extras.children).forEach((e)=>{ msg = msg + "|||" + e.value })
