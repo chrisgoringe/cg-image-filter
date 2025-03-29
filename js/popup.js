@@ -220,11 +220,15 @@ class Popup extends HTMLSpanElement {
         ComfyApp.copyToClipspace(this.node)
         ComfyApp.clipspace_return_node = this.node
         ComfyApp.open_maskeditor()
-
+        this.seen_editor = false
         setTimeout(this.wait_while_mask_editing.bind(this), 200)
     }
 
     wait_while_mask_editing() {
+        if (!this.seen_editor && document.getElementById('maskEditor')) {
+            console.log("Mask editor has appeared")
+            this.seen_editor = true
+        }
         const cancel_button = document.getElementById("maskEditor_topBarCancelButton")
         if (cancel_button && !cancel_button.filter_listener_added) {
             cancel_button.addEventListener('click', (e)=>{ this.send_cancel() })
