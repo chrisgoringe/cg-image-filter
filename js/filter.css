@@ -26,6 +26,7 @@
     top: 70px;
     border: 1px solid white;
     background-color: #fdfdfd30;
+    z-index: 110000;
 }
 
 .tiny_image {
