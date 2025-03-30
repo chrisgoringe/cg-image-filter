@@ -89,8 +89,6 @@ Other things (like prompts, segs etc.) that have been used can be selected using
 
 ## Mask Image Filter
 
-**Note that the Mask Image Filter works with the new Mask Editor; it does not work with the old one**
-
 Designed for a single image, when executed the Mask Image Filter node will automatically launch the mask editor. 
 
 ![mask](images/mask.png)
@@ -102,6 +100,10 @@ mask the bit you don't like, before doing an img2img step.
 
 Again, there is a timeout, and if you don't save a mask before the end of the timeout (or if you press the cancel button in the mask editor), 
 it will either cancel, or send a blank mask, depending on the option chosen.
+
+**Note that the Mask Image Filter works with the new Mask Editor; it does not work with the old one**
+
+![img](images/editorchoice.png)
 
 ---
 

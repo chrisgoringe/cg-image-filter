@@ -31,6 +31,12 @@ app.registerExtension({
             type: "boolean",
             defaultValue: false
         },
+        {
+            id: "ImageFilter.DetailedLogging",
+            name: "Turn on detailed logging",
+            type: "boolean",
+            defaultValue: false
+        },
     ],
     setup() {
         create('link', null, document.getElementsByTagName('HEAD')[0], 

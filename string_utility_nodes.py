@@ -15,9 +15,15 @@ class SplitByCommas:
         }
     
     def func(self, string:str, split:str=","):
-        bits = [r.strip() for r in string.split(split,5)] 
-        padded = bits + [""]*5
-        return tuple(padded[:5] + [bits,])
+        bits = [r.strip() for r in string.split(split)] 
+        as_list = [b for b in bits]
+        if len(bits)<=5: 
+            bits += ["",]*(5-len(bits))
+        else:
+            bits = bits[:4] + [",".join(bits[4:]),]
+
+        bits.append(as_list)
+        return tuple(bits)
     
 class StringToInt:
     RETURN_TYPES = ("INT",)
