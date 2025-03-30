@@ -19,11 +19,15 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/seahorse.png" alt="Seahorse" width="200" height="200">
 
+## New in 1.3 ##
+
+- pick_list to automatically select images in `Image Filter`
 
 ## New in 1.2 ##
 
 - Options have all moved to the main settings
 - New option to show a miniature window instead of taking over the screen - click on it to go into full screen mode
+- List of ints output from `Split String by Commas`
 
 ## New in 1.1.6 ## 
 
@@ -84,6 +88,15 @@ select from a batch of images, but the next stage uses the latent - that way you
 to pick a mask (perhaps from options automatically generated)
 
 Other things (like prompts, segs etc.) that have been used can be selected using the `Pick from List` helper node.
+
+### pick_list
+
+Sometimes you know which images you are going to want. If you provide a comma separated list of integers in `pick_list`,
+these images will be selected without user input. Values will be taken modulo the number of images (which means you can use `-1` for the last image).
+
+You could also use this to make a larger batch of images (repeat a value and the image will appear repeated times in the output).
+
+Note that this uses zero indexing (the first image is '0').
 
 ---
 
