@@ -134,13 +134,16 @@ If you use the optional 'tip' input, the contents will be displayed under the ex
 
 ### String handling
 
-- `Split String by Commas` allows you to split a text string into up to five pieces, splitting on `,`, `|`, or `^`. It also strips whitespace, so that the strings can be easily parsed. It produces five string outputs, plus a sixth output which is a list of strings (in case you have more!)
+- `Split String by Commas` allows you to split a text string into up to five pieces, splitting on `,`, `|`, or `^`. It also strips whitespace, so that the strings can be easily parsed, especially by...
 - `String to Int` and `String to Float` convert a string to an int or a float, with a fallback default 
 
 Together, these nodes allow you to specify lots of information in the `extras` fields. For instance, if doing an inpaint, you might have an extras field that takes the format `0.4, 20` meaning 'denoise 0.4, 20 steps'. Split the string, feed the pieces into the converters, and feed that into other nodes. Like this:
 
 ![extras](images/extras.png)
 
+`Split String by Commas` produces five string outputs. If there are fewer than five terms, the extra ones will havee an empty string; if there are more than five terms the fifth output will be a comma separated list of the fifth and subsequent terms.
+
+There is also a sixth output which is a list of all the strings.
 
 ### Pick from List
 
