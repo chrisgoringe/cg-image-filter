@@ -89,6 +89,8 @@ Other things (like prompts, segs etc.) that have been used can be selected using
 
 ## Mask Image Filter
 
+**Note that the Mask Image Filter works with the new Mask Editor; it does not work with the old one**
+
 Designed for a single image, when executed the Mask Image Filter node will automatically launch the mask editor. 
 
 ![mask](images/mask.png)
