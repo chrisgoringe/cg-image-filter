@@ -200,12 +200,4 @@ to report problems, or to make suggestions.
 
 ## How to report a bug well
 
-If you are having problems, the better information you give me, the more chance I can fix it! Here are some steps you can take:
-
-- describe what you did, what you expected, and what happened
-- press f12 and see if there are any errors in the javascript console. If there are, screenshot them
-- let me know the comfy version information in Settings - About. It looks like this:
-
-![Screenshot 2025-03-27 122309](images/versions.png)
-- include what browser you are using
-- if you have a simple workflow that recreates the problem, that's a huge help
+Please read [this guide](https://github.com/chrisgoringe/cg-image-filter/discussions/60) before you post a bug!
