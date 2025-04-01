@@ -85,7 +85,7 @@ class ImageFilter(PreviewImage):
         return {
             "required": { 
                 "images" : ("IMAGE", ), 
-                "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
+                "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
                 "ontimeout": (["send none", "send all", "send first", "send last"], {}),
             },
             "optional": {
@@ -101,8 +101,8 @@ class ImageFilter(PreviewImage):
         }
     
     @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        return float("NaN")
+    def IS_CHANGED(cls, pick_list, **kwargs):
+        return pick_list or float("NaN")
     
     def func(self, images, timeout, ontimeout, uid, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list:str="", **kwargs):
         e1, e2, e3 = extra1, extra2, extra3
@@ -150,7 +150,7 @@ class TextImageFilterWithExtras(PreviewImage):
             "required": { 
                 "image" : ("IMAGE", ), 
                 "text" : ("STRING", {"default":""}),
-                "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
+                "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
             },
             "optional": {
                 "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
@@ -194,6 +194,9 @@ class MaskImageFilter(PreviewImage, LoadImage):
                 "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
                 "if_no_mask": (["cancel", "send blank"], {}),
             },
+            "optional": {
+                "mask" : ("MASK", {"tooltip":"optional initial mask"})
+            },
             "hidden": HIDDEN,
         }
     
@@ -204,8 +207,13 @@ class MaskImageFilter(PreviewImage, LoadImage):
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs): return True
     
-    def func(self, image, timeout, uid, if_no_mask, **kwargs):
-        urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
+    def func(self, image, timeout, uid, if_no_mask, mask=None, **kwargs):
+        if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
+            saveable = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
+        else:
+            saveable = image
+
+        urls:list[str] = self.save_images(images=saveable, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "maskedit":True}
         response = send_with_resend(payload, timeout, uid)
         

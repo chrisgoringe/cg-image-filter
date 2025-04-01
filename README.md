@@ -22,6 +22,7 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 ## New in 1.3 ##
 
 - pick_list to automatically select images in `Image Filter`
+- optional initial mask input to `Mask Image Filter`
 
 ## New in 1.2 ##
 
@@ -113,6 +114,12 @@ mask the bit you don't like, before doing an img2img step.
 
 Again, there is a timeout, and if you don't save a mask before the end of the timeout (or if you press the cancel button in the mask editor), 
 it will either cancel, or send a blank mask, depending on the option chosen.
+
+### Mask in
+
+There is an optional mask input (added in 1.3), which allows you to specify the mask when the editor is launched:
+
+![mask in](images/maskin.png)
 
 **Note that the Mask Image Filter works with the new Mask Editor; it does not work with the old one**
 
