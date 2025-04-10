@@ -85,7 +85,7 @@ class ImageFilter(PreviewImage):
         return {
             "required": { 
                 "images" : ("IMAGE", ), 
-                "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
+                "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
                 "ontimeout": (["send none", "send all", "send first", "send last"], {}),
             },
             "optional": {
@@ -95,37 +95,41 @@ class ImageFilter(PreviewImage):
                 "extra1" : ("STRING", {"default":""}),
                 "extra2" : ("STRING", {"default":""}),
                 "extra3" : ("STRING", {"default":""}),
+                "pick_list" : ("STRING", {"default":"", "tooltip":"If a comma separated list of integers is provided, the images with these indices will be selected automatically."}),
             },
             "hidden": HIDDEN,
         }
     
     @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        return float("NaN")
+    def IS_CHANGED(cls, pick_list, **kwargs):
+        return pick_list or float("NaN")
     
-    def func(self, images, timeout, ontimeout, uid, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, **kwargs):
+    def func(self, images, timeout, ontimeout, uid, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list:str="", **kwargs):
+        e1, e2, e3 = extra1, extra2, extra3
         B = images.shape[0]
-        all_the_same = ( B and all( (images[i]==images[0]).all() for i in range(1,B) )) 
-        urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
-        payload = {"uid": uid, "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip}
 
-        response = send_with_resend(payload, timeout, uid)
+        try:    images_to_return = [ int(x.strip())%B for x in pick_list.split(',') ] if pick_list else []
+        except Exception as e: 
+            print(f"{e} parsing pick_list - will manually select")
+            images_to_return = []
 
-        if not response:
-            e1 = extra1
-            e2 = extra2
-            e3 = extra3
-            if ontimeout=='send none': response = ""
-            if ontimeout=='send all': response = ",".join(list(str(x) for x in range(len(images))))
-            if ontimeout=='send first': response = "0"
-            if ontimeout=='send last': response = str(len(images)-1)
-        else:
-            response, e1, e2, e3 = response.split("|||")
+        if len(images_to_return) == 0:
+            all_the_same = ( B and all( (images[i]==images[0]).all() for i in range(1,B) )) 
+            urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
+            payload = {"uid": uid, "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip}
 
-        images_to_return = list(int(x) for x in response.split(",") if x)
+            response = send_with_resend(payload, timeout, uid)
 
-        if len(images_to_return) == 0: 
-            raise InterruptProcessingException()
+            if response:
+                response, e1, e2, e3 = response.split("|||")
+                images_to_return = [int(x) for x in response.split(",") if x]
+            else:
+                if ontimeout=='send none':  images_to_return = []
+                if ontimeout=='send all':   images_to_return = [*range(len(images))]
+                if ontimeout=='send first': images_to_return = [0,]
+                if ontimeout=='send last':  images_to_return = [len(images)-1,] 
+
+        if len(images_to_return) == 0: raise InterruptProcessingException()
 
         images = torch.stack(list(images[i] for i in images_to_return))
         latents = {"samples": torch.stack(list(latents['samples'][i] for i in images_to_return))} if latents is not None else None
@@ -146,7 +150,7 @@ class TextImageFilterWithExtras(PreviewImage):
             "required": { 
                 "image" : ("IMAGE", ), 
                 "text" : ("STRING", {"default":""}),
-                "timeout": ("INT", {"default": 60, "tooltip": "Timeout in seconds."}),
+                "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
             },
             "optional": {
                 "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
@@ -190,6 +194,9 @@ class MaskImageFilter(PreviewImage, LoadImage):
                 "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
                 "if_no_mask": (["cancel", "send blank"], {}),
             },
+            "optional": {
+                "mask" : ("MASK", {"tooltip":"optional initial mask"})
+            },
             "hidden": HIDDEN,
         }
     
@@ -200,8 +207,13 @@ class MaskImageFilter(PreviewImage, LoadImage):
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs): return True
     
-    def func(self, image, timeout, uid, if_no_mask, **kwargs):
-        urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
+    def func(self, image, timeout, uid, if_no_mask, mask=None, **kwargs):
+        if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
+            saveable = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
+        else:
+            saveable = image
+
+        urls:list[str] = self.save_images(images=saveable, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "maskedit":True}
         response = send_with_resend(payload, timeout, uid)
         

@@ -19,11 +19,16 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/seahorse.png" alt="Seahorse" width="200" height="200">
 
+## New in 1.3 ##
+
+- pick_list to automatically select images in `Image Filter`
+- optional initial mask input to `Mask Image Filter`
 
 ## New in 1.2 ##
 
 - Options have all moved to the main settings
 - New option to show a miniature window instead of taking over the screen - click on it to go into full screen mode
+- List of ints output from `Split String by Commas`
 
 ## New in 1.1.6 ## 
 
@@ -85,6 +90,15 @@ to pick a mask (perhaps from options automatically generated)
 
 Other things (like prompts, segs etc.) that have been used can be selected using the `Pick from List` helper node.
 
+### pick_list
+
+Sometimes you know which images you are going to want. If you provide a comma separated list of integers in `pick_list`,
+these images will be selected without user input. Values will be taken modulo the number of images (which means you can use `-1` for the last image).
+
+You could also use this to make a larger batch of images (repeat a value and the image will appear repeated times in the output).
+
+Note that this uses zero indexing (the first image is '0').
+
 ---
 
 ## Mask Image Filter
@@ -100,6 +114,12 @@ mask the bit you don't like, before doing an img2img step.
 
 Again, there is a timeout, and if you don't save a mask before the end of the timeout (or if you press the cancel button in the mask editor), 
 it will either cancel, or send a blank mask, depending on the option chosen.
+
+### Mask in
+
+There is an optional mask input (added in 1.3), which allows you to specify the mask when the editor is launched:
+
+![mask in](images/maskin.png)
 
 **Note that the Mask Image Filter works with the new Mask Editor; it does not work with the old one**
 
@@ -187,12 +207,4 @@ to report problems, or to make suggestions.
 
 ## How to report a bug well
 
-If you are having problems, the better information you give me, the more chance I can fix it! Here are some steps you can take:
-
-- describe what you did, what you expected, and what happened
-- press f12 and see if there are any errors in the javascript console. If there are, screenshot them
-- let me know the comfy version information in Settings - About. It looks like this:
-
-![Screenshot 2025-03-27 122309](images/versions.png)
-- include what browser you are using
-- if you have a simple workflow that recreates the problem, that's a huge help
+Please read [this guide](https://github.com/chrisgoringe/cg-image-filter/discussions/60) before you post a bug!
