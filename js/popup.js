@@ -93,7 +93,7 @@ class Popup extends HTMLSpanElement {
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
         this.counter_reset_button.addEventListener('click', this.request_reset.bind(this) )
 
-        document.addEventListener("keypress", this.on_key_press.bind(this))
+        document.addEventListener("keydown", this.on_key_down.bind(this))
 
         document.body.appendChild(this)
         this.last_response_sent = 0
@@ -114,6 +114,7 @@ class Popup extends HTMLSpanElement {
 
         try {
             const body = new FormData();
+            msg = `${msg}!unique!${this.unique}`
             body.append('response', msg);
             api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
             Log.message_out(msg)
@@ -130,6 +131,7 @@ class Popup extends HTMLSpanElement {
 
     close() { 
         this.state = State.INACTIVE
+        this.node.choose_id()
         State.render(this)
     }
 
@@ -153,6 +155,22 @@ class Popup extends HTMLSpanElement {
 
     _handle_message(message, use_saved) {
 
+        const uid = message.detail.uid
+        const unique = message.detail.unique
+        const node = app.graph._nodes_by_id[uid]
+
+        if (!node) {
+            console.log(`Message was for ${uid} which doesn't exist`)
+            return
+        }
+
+        if  (node.widgets?.find((n)=>n.label=='node_identifier')?.value != message.detail.unique) {
+            console.log(`Message unique id wasn't mine`)
+            return
+        }
+
+        this.node = node
+
         this.allsame = message.detail.allsame || false
 
         if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("ImageFilter.SmallWindow") && !use_saved && !this.autosend()) {
@@ -170,16 +188,9 @@ class Popup extends HTMLSpanElement {
         try {
             const detail = message.detail
 
-            if (detail.uid) {
-                const node = app.graph._nodes_by_id[detail.uid]
-                if (!node) return `Node ${detail.uid} not found`
-                if (!EXTENSION_NODES.includes(node.type)) return `Node ${detail.uid} is not an image filter node`
-            } else {
-                return `No uid in message`
-            }
-
             if (detail.tick) {
                 this.counter_text.innerText = `${detail.tick}s`
+                if (this.state==State.INACTIVE) this.request_reset()
                 return
             }
 
@@ -300,16 +311,35 @@ class Popup extends HTMLSpanElement {
         this.redraw()       
     }
 
-    on_key_press(e) {
-        if (e.key==' ') {
-            if (this.state==State.ZOOMED) {
-                this.state = State.FILTER
-            } else if (this.mouse_is_over) {
+    on_key_down(e) {
+        var used_keypress = false;
+
+        if (this.state==State.FILTER) {
+            if (e.key==' ' && this.mouse_is_over) {
                 this.state = State.ZOOMED
-                this.zoomed_image.src = this.mouse_is_over.src
+                this.zoomed_image_holder = this.mouse_is_over
                 this.on_mouse_out(this.mouse_is_over)
+                used_keypress = true
             }
-            State.render(this)
+        } else if (this.state==State.ZOOMED) {
+            if (e.key==' ' || e.key=='ArrowUp') {
+                this.state = State.FILTER
+                this.zoomed_image_holder = null
+                used_keypress = true
+            } else if (e.key=='ArrowRight') {
+                this.zoomed_image_holder = this.zoomed_image_holder.nextSibling || this.zoomed_image_holder.parentNode.firstChild
+                used_keypress = true     
+            } else if (e.key=='ArrowLeft') {
+                this.zoomed_image_holder = this.zoomed_image_holder.previousSibling || this.zoomed_image_holder.parentNode.lastChild
+                used_keypress = true         
+            }
+        }
+
+        if (used_keypress) {
+            e.stopPropagation()
+            e.preventDefault()
+            if (this.zoomed_image_holder) this.zoomed_image.src = this.zoomed_image_holder.src
+            State.render(this) 
         }
     }
 
