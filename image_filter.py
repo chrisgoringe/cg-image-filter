@@ -2,7 +2,7 @@ from server import PromptServer
 from aiohttp import web
 from nodes import PreviewImage, LoadImage
 from comfy.model_management import InterruptProcessingException, throw_exception_if_processing_interrupted
-import time, os
+import time, os, random
 import torch
 
 REQUEST_RESHOW = "-1"
@@ -32,27 +32,30 @@ async def cg_image_filter_message(request):
         print(f"Ignoring response {response} as current response is {Message.data}")
     return web.json_response({})
 
-def wait(secs, uid):
+def wait(secs, uid, unique):
     Message.setdata(None, "start of wait")
     end_time = time.monotonic() + secs
     while(time.monotonic() < end_time and Message.data is None): 
         throw_exception_if_processing_interrupted()
-        PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic()), "uid": uid})
+        PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic()), "uid": uid, "unique":unique})
         time.sleep(0.2)
     response = Message.data
     Message.setdata(None, "read response")
     if response is None:
-        PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "uid": uid})
+        PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "uid": uid, "unique":unique})
     
     return response
 
-def send_with_resend(payload, timeout, uid):
+def send_with_resend(payload, timeout, uid, unique):
     response = WAITING_FOR_RESPONSE
+    payload['unique'] = unique
     while response in SPECIALS:
         PromptServer.instance.send_sync("cg-image-filter-images", payload)
-        response = wait(timeout, uid)
+        response = wait(timeout, uid, unique)
         if response == CANCEL:  
             raise InterruptProcessingException()
+    if Message.unique != unique:
+        print("Mismatched uniques...")
     return response
 
 def mask_to_image(mask:torch.Tensor):
@@ -60,10 +63,17 @@ def mask_to_image(mask:torch.Tensor):
 
 class Message:
     data:str = None
+    unique:str = None
     @classmethod
     def setdata(cls, v, comment):
         #print(f"Message.data set to {v} (${comment})")
-        cls.data = v
+        if v:
+            chop = v.split('!unique!')
+            cls.data = chop[0]
+            cls.unique = chop[1] if len(chop)>1 else None
+        else:
+            cls.data = None
+            cls.unique = None
 
 HIDDEN = {
             "prompt": "PROMPT", 
@@ -87,6 +97,7 @@ class ImageFilter(PreviewImage):
                 "images" : ("IMAGE", ), 
                 "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
                 "ontimeout": (["send none", "send all", "send first", "send last"], {}),
+                "node_identifier": ("INT", {"default":0, "max":99999999}),
             },
             "optional": {
                 "latents" : ("LATENT", {"tooltip": "Optional - if provided, will be output"}),
@@ -104,7 +115,7 @@ class ImageFilter(PreviewImage):
     def IS_CHANGED(cls, pick_list, **kwargs):
         return pick_list or float("NaN")
     
-    def func(self, images, timeout, ontimeout, uid, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list:str="", **kwargs):
+    def func(self, images, timeout, ontimeout, uid, node_identifier, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list:str="", **kwargs):
         e1, e2, e3 = extra1, extra2, extra3
         B = images.shape[0]
 
@@ -118,7 +129,7 @@ class ImageFilter(PreviewImage):
             urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
             payload = {"uid": uid, "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip}
 
-            response = send_with_resend(payload, timeout, uid)
+            response = send_with_resend(payload, timeout, uid, node_identifier)
 
             if response:
                 response, e1, e2, e3 = response.split("|||")
@@ -151,7 +162,7 @@ class TextImageFilterWithExtras(PreviewImage):
                 "image" : ("IMAGE", ), 
                 "text" : ("STRING", {"default":""}),
                 "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
-            },
+                "node_identifier": ("INT", {"default":0, "max":99999999}),            },
             "optional": {
                 "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
                 "tip" : ("STRING", {"default":"", "tooltip": "Optional - if provided, will be displayed in popup window"}),
@@ -167,13 +178,13 @@ class TextImageFilterWithExtras(PreviewImage):
     def IS_CHANGED(cls, **kwargs):
         return float("NaN")
     
-    def func(self, image, text, timeout, uid, extra1="", extra2="", extra3="", mask=None, tip="", textareaheight=None, **kwargs):
+    def func(self, image, text, timeout, uid, node_identifier, extra1="", extra2="", extra3="", mask=None, tip="", textareaheight=None, **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3], "tip":tip}
         if textareaheight is not None: payload['textareaheight'] = textareaheight
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
 
-        response = send_with_resend(payload, timeout, uid)
+        response = send_with_resend(payload, timeout, uid, node_identifier)
         response = response.split("|||") if response else [text, extra1, extra2, extra3]
 
         return (image, *response) 
@@ -193,7 +204,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
                 "image" : ("IMAGE", ), 
                 "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
                 "if_no_mask": (["cancel", "send blank"], {}),
-            },
+                "node_identifier": ("INT", {"default":0, "max":99999999}),            },
             "optional": {
                 "mask" : ("MASK", {"tooltip":"optional initial mask"})
             },
@@ -207,7 +218,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs): return True
     
-    def func(self, image, timeout, uid, if_no_mask, mask=None, **kwargs):
+    def func(self, image, timeout, uid, if_no_mask, node_identifier, mask=None, **kwargs):
         if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
             saveable = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
         else:
@@ -215,7 +226,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
 
         urls:list[str] = self.save_images(images=saveable, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "maskedit":True}
-        response = send_with_resend(payload, timeout, uid)
+        response = send_with_resend(payload, timeout, uid, node_identifier)
         
         if (response):
             try:

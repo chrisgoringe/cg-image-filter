@@ -3,6 +3,9 @@ import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
 import { popup } from "./popup.js";
+import { ComfyWidgets } from "../../scripts/widgets.js";
+
+const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
 
 app.registerExtension({
 	name: "cg.image_filter",
@@ -59,5 +62,25 @@ app.registerExtension({
                 }
             }
         }
-    }
+        if (FILTER_TYPES.includes(nodeType.comfyClass )) {
+            nodeType.prototype.choose_id = function() {
+                const v = Math.floor(Math.random() * 1000000)
+                this.widgets.find((n)=>n.name=='node_identifier').value = v
+                console.log(`Chose ${v}`)
+            }
+
+            const onNodeCreated = nodeType.prototype.onNodeCreated;
+            nodeType.prototype.onNodeCreated = function () {
+                const idx = this.widgets.findIndex((n)=>n.name=='node_identifier')
+                const old_widget = (idx>=0) ? this.widgets.splice(idx,1)[0] : null
+                const new_widget = ComfyWidgets["INT"](this, "node_identifier", ["INT", { "default":0 }], app).widget
+                new_widget.label = new_widget.name
+                new_widget.type = 'hidden'
+
+                this.choose_id()
+                return onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
+            }
+        }
+    },
+
 })

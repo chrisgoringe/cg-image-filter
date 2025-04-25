@@ -43,6 +43,10 @@ class State {
         if (value) item.classList.remove('hidden')
         else item.classList.add('hidden')
     }
+    static highlighted(item, value) {
+        if (value) item.classList.add('highlighted')
+        else item.classList.remove('highlighted')
+    }
 
     static render(popup) {
         const state = popup.state
@@ -52,6 +56,12 @@ class State {
         State.visible(popup.zoomed, state==State.ZOOMED)
         State.visible(popup.text_edit, state==State.TEXT)
         State.visible(popup.send_button, true /*!app.ui.settings.getSettingValue("ImageFilter.ClickSends")*/)
+
+        if (state==State.ZOOMED) {
+            const img_index = popup.zoomed_image_holder.image_index
+            State.highlighted(popup.zoomed, popup.picked.has(`${img_index}`))
+            popup.zoomed_number.innerHTML = `${img_index+1}/${popup.n_images}`
+        }
 
         if (document.getElementById('maskEditor') && state!=State.MASK) {
             document.getElementById('maskEditor').style.display = 'none'
@@ -70,6 +80,7 @@ class Popup extends HTMLSpanElement {
         this.overlaygrid        = create('span', 'grid overlaygrid', this)
         this.zoomed             = create('span', 'zoomed', this)
         this.zoomed_image       = create('img', 'zoomed_image', this.zoomed)
+        this.zoomed_number      = create('span', 'zoomed_number', this.zoomed)
         this.text_edit          = create('textarea', 'text_edit', this)
         this.title_bar          = create('span', 'title', this)
         this.buttons            = create('span', 'buttons', this)
@@ -93,7 +104,7 @@ class Popup extends HTMLSpanElement {
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
         this.counter_reset_button.addEventListener('click', this.request_reset.bind(this) )
 
-        document.addEventListener("keypress", this.on_key_press.bind(this))
+        document.addEventListener("keydown", this.on_key_down.bind(this))
 
         document.body.appendChild(this)
         this.last_response_sent = 0
@@ -114,6 +125,7 @@ class Popup extends HTMLSpanElement {
 
         try {
             const body = new FormData();
+            msg = `${msg}!unique!${this.unique}`
             body.append('response', msg);
             api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
             Log.message_out(msg)
@@ -130,6 +142,7 @@ class Popup extends HTMLSpanElement {
 
     close() { 
         this.state = State.INACTIVE
+        this.node.choose_id()
         State.render(this)
     }
 
@@ -153,6 +166,22 @@ class Popup extends HTMLSpanElement {
 
     _handle_message(message, use_saved) {
 
+        const uid = message.detail.uid
+        const unique = message.detail.unique
+        const node = app.graph._nodes_by_id[uid]
+
+        if (!node) {
+            console.log(`Message was for ${uid} which doesn't exist`)
+            return
+        }
+
+        if  (node.widgets?.find((n)=>n.label=='node_identifier')?.value != message.detail.unique) {
+            console.log(`Message unique id wasn't mine`)
+            return
+        }
+
+        this.node = node
+
         this.allsame = message.detail.allsame || false
 
         if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("ImageFilter.SmallWindow") && !use_saved && !this.autosend()) {
@@ -170,16 +199,9 @@ class Popup extends HTMLSpanElement {
         try {
             const detail = message.detail
 
-            if (detail.uid) {
-                const node = app.graph._nodes_by_id[detail.uid]
-                if (!node) return `Node ${detail.uid} not found`
-                if (!EXTENSION_NODES.includes(node.type)) return `Node ${detail.uid} is not an image filter node`
-            } else {
-                return `No uid in message`
-            }
-
             if (detail.tick) {
                 this.counter_text.innerText = `${detail.tick}s`
+                if (this.state==State.INACTIVE) this.request_reset()
                 return
             }
 
@@ -300,16 +322,40 @@ class Popup extends HTMLSpanElement {
         this.redraw()       
     }
 
-    on_key_press(e) {
-        if (e.key==' ') {
-            if (this.state==State.ZOOMED) {
-                this.state = State.FILTER
-            } else if (this.mouse_is_over) {
+    on_key_down(e) {
+        var used_keypress = false;
+
+        if (this.state==State.FILTER) {
+            if (e.key==' ' && this.mouse_is_over) {
                 this.state = State.ZOOMED
-                this.zoomed_image.src = this.mouse_is_over.src
+                this.zoomed_image_holder = this.mouse_is_over
                 this.on_mouse_out(this.mouse_is_over)
+                used_keypress = true
             }
-            State.render(this)
+        } else if (this.state==State.ZOOMED) {
+            if (e.key==' ') {
+                this.state = State.FILTER
+                this.zoomed_image_holder = null
+                used_keypress = true
+            } else if (e.key=='ArrowUp') {
+                const fake_event = { target:this.zoomed_image_holder}
+                this.on_click(fake_event)
+            } else if (e.key=='ArrowDown') {
+                // select or unselect    
+            } else if (e.key=='ArrowRight') {
+                this.zoomed_image_holder = this.zoomed_image_holder.nextSibling || this.zoomed_image_holder.parentNode.firstChild
+                used_keypress = true     
+            } else if (e.key=='ArrowLeft') {
+                this.zoomed_image_holder = this.zoomed_image_holder.previousSibling || this.zoomed_image_holder.parentNode.lastChild
+                used_keypress = true         
+            }
+        }
+
+        if (used_keypress) {
+            e.stopPropagation()
+            e.preventDefault()
+            if (this.zoomed_image_holder) this.zoomed_image.src = this.zoomed_image_holder.src
+            State.render(this) 
         }
     }
 

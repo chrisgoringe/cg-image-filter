@@ -126,6 +126,22 @@
 
 }
 
+.cg_popup .zoomed_number {
+    position: absolute;
+    top: 40%;
+    left: 30px;
+    color: white;
+    padding: 10px;
+    z-index: 110000;
+    background-color: rgba(128, 128, 128, 0.5);
+    /*text-align: center;*/
+}
+
+.cg_popup .zoomed.highlighted .zoomed_image {
+    border: 3px solid green;
+    padding: 2px;
+}
+
 .cg_popup .buttons button {
     margin: 5px 0 5px 0;
     padding: 4px;
