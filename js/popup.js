@@ -301,14 +301,36 @@ class Popup extends HTMLSpanElement {
     on_key_down(e) {
         var used_keypress = false;
 
-        if (this.state==State.FILTER) {
+        if (this.state==State.FILTER || this.state==State.TEXT) {
+            if (document.activeElement?.type=='text' || document.activeElement?.type=='textarea') {
+                return
+                // don't capture keys when editing text
+            } else {
+                if (e.key=='Enter') {
+                    this.send_current_state()
+                    used_keypress = true
+                }
+                if (e.key=='Escape') {
+                    this.send_cancel()
+                    used_keypress = true
+                }
+                if (`${parseInt(e.key)}`==e.key) {
+                    this.select_unselect(parseInt(e.key))
+                    used_keypress = true
+                }
+            }
+        }
+
+        if (this.state==State.FILTER && !used_keypress) {
             if (e.key==' ' && this.mouse_is_over) {
                 this.state = State.ZOOMED
                 this.zoomed_image_holder = this.mouse_is_over
                 this.on_mouse_out(this.mouse_is_over)
                 used_keypress = true
             }
-        } else if (this.state==State.ZOOMED) {
+        }
+        
+        if (this.state==State.ZOOMED && !used_keypress) {
             if (e.key==' ') {
                 this.state = State.FILTER
                 this.zoomed_image_holder = null
@@ -327,6 +349,8 @@ class Popup extends HTMLSpanElement {
             }
         }
 
+
+
         if (used_keypress) {
             e.stopPropagation()
             e.preventDefault()
@@ -335,16 +359,23 @@ class Popup extends HTMLSpanElement {
         }
     }
 
+    select_unselect(n) {
+        if (n<0 || n>this.n_images) {
+            return
+        }
+        const s = `${n}`
+        if (app.ui.settings.getSettingValue("ImageFilter.ClickSends")) {
+            this._send_response(s)
+        } else {
+            if (this.picked.has(s)) this.picked.delete(s)
+            else this.picked.add(s)
+            this.redraw()
+        }
+    }
+
     on_click(e) {
         if (e.target.image_index != undefined) {
-            const s = `${e.target.image_index}`
-            if (app.ui.settings.getSettingValue("ImageFilter.ClickSends")) {
-                this._send_response(s)
-            } else {
-                if (this.picked.has(s)) this.picked.delete(s)
-                else this.picked.add(s)
-                this.redraw()
-            }
+            this.select_unselect(e.target.image_index)
         }
     }
 

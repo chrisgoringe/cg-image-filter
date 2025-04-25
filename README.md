@@ -19,9 +19,10 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/seahorse.png" alt="Seahorse" width="200" height="200">
 
-## New in 1.3.1 ##
+## New in 1.3.2 ##
 
 - works with old mask editor as well
+- keyboard shortcuts are back
 - various minor fixes
 
 ## New in 1.3 ##
@@ -60,6 +61,20 @@ an image without user interaction.
 - `ClickSends` In the ImageFilter node, clicking an image sends it instead of selecting it. Useful if you know you only ever want to send one image at most.
 - `PlaySound` Play a 'ding' sound when any of the filter nodes becomes active.
 - `SmallWindow` Instead of taking over the whole screen immediately, display a tiny version of the image in the top left. Click that image to go into the full screen mode.
+
+---
+
+## Keyboard shortcuts
+
+In `Image Filter` and `Text Image Filter` (not `Mask Image Filter`)
+
+- `Space` when hovering over an image enlarges it. While enlarged:
+  - `Space` closes the zoom
+  - `ArrowLeft` and `ArrowRight` select the previous/next image
+  - `ArrowUp` clicks this image (select/deselect or send, depending on the value of `ClickSends`)
+- `Escape` to click the cancel button
+- `Enter`to click the send button
+- digits `0`, `1`, etc. to click an image (zero-indexed) (select/deselect or send, depending on the value of `ClickSends`)
 
 ---
 
