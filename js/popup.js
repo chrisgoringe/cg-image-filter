@@ -43,6 +43,10 @@ class State {
         if (value) item.classList.remove('hidden')
         else item.classList.add('hidden')
     }
+    static highlighted(item, value) {
+        if (value) item.classList.add('highlighted')
+        else item.classList.remove('highlighted')
+    }
 
     static render(popup) {
         const state = popup.state
@@ -52,6 +56,12 @@ class State {
         State.visible(popup.zoomed, state==State.ZOOMED)
         State.visible(popup.text_edit, state==State.TEXT)
         State.visible(popup.send_button, true /*!app.ui.settings.getSettingValue("ImageFilter.ClickSends")*/)
+
+        if (state==State.ZOOMED) {
+            const img_index = popup.zoomed_image_holder.image_index
+            State.highlighted(popup.zoomed, popup.picked.has(`${img_index}`))
+            popup.zoomed_number.innerHTML = `${img_index+1}/${popup.n_images}`
+        }
 
         if (document.getElementById('maskEditor') && state!=State.MASK) {
             document.getElementById('maskEditor').style.display = 'none'
@@ -70,6 +80,7 @@ class Popup extends HTMLSpanElement {
         this.overlaygrid        = create('span', 'grid overlaygrid', this)
         this.zoomed             = create('span', 'zoomed', this)
         this.zoomed_image       = create('img', 'zoomed_image', this.zoomed)
+        this.zoomed_number      = create('span', 'zoomed_number', this.zoomed)
         this.text_edit          = create('textarea', 'text_edit', this)
         this.title_bar          = create('span', 'title', this)
         this.buttons            = create('span', 'buttons', this)
@@ -322,10 +333,15 @@ class Popup extends HTMLSpanElement {
                 used_keypress = true
             }
         } else if (this.state==State.ZOOMED) {
-            if (e.key==' ' || e.key=='ArrowUp') {
+            if (e.key==' ') {
                 this.state = State.FILTER
                 this.zoomed_image_holder = null
                 used_keypress = true
+            } else if (e.key=='ArrowUp') {
+                const fake_event = { target:this.zoomed_image_holder}
+                this.on_click(fake_event)
+            } else if (e.key=='ArrowDown') {
+                // select or unselect    
             } else if (e.key=='ArrowRight') {
                 this.zoomed_image_holder = this.zoomed_image_holder.nextSibling || this.zoomed_image_holder.parentNode.firstChild
                 used_keypress = true     
