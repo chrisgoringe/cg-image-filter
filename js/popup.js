@@ -1,31 +1,16 @@
 import { app, ComfyApp } from "../../scripts/app.js";
-import { api } from "../../scripts/api.js";
+import { api } from "../../scripts/api.js"
 
+import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor } from "./mask_utils.js";
+import { Log } from "./log.js";
 import { create } from "./utils.js";
 
-const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
+//const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
 const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras",]
 const MASK_NODES = ["Mask Image Filter",]
 
 const REQUEST_RESHOW = "-1"
 const CANCEL = "-3"
-
-class Log {
-    static log(s) { if (s) console.log(s) }
-    static error(e) { console.error(e) }
-    static detail(s) {
-        if (app.ui.settings.getSettingValue("ImageFilter.DetailedLogging")) Log.log(s)
-    }
-    static message_in(message, extra) {
-        if (!app.ui.settings.getSettingValue("ImageFilter.DetailedLogging")) return
-        if (message.detail && !message.detail.tick) Log.log(`--> ${JSON.stringify(message.detail)}` + (extra ? ` ${extra}` : ""))
-        if (message.detail && message.detail.tick) Log.log(`--> tick`)
-    }
-    static message_out(response, extra) {
-        if (!app.ui.settings.getSettingValue("ImageFilter.DetailedLogging")) return
-        Log.log(`"<-- ${JSON.stringify(response)}` + (extra ? ` ${extra}` : ""))
-    }
-}
 
 function get_full_url(url) {
     return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}&r=${Math.random()}`)
@@ -63,11 +48,10 @@ class State {
             popup.zoomed_number.innerHTML = `${img_index+1}/${popup.n_images}`
         }
 
-        if (document.getElementById('maskEditor') && state!=State.MASK) {
-            document.getElementById('maskEditor').style.display = 'none'
-        }
+        if (state!=State.MASK) hide_mask_editor()
     }
 }
+
 
 class Popup extends HTMLSpanElement {
     constructor() {
@@ -222,16 +206,13 @@ class Popup extends HTMLSpanElement {
         } finally { this.handling_message = false }  
     }
 
-    mask_editor_showing() {
-        return document.getElementById('maskEditor')?.style.display != 'none'
-    }
+
 
     window_not_showing(uid) {
         const node = app.graph._nodes_by_id[uid]
         return (
             (POPUP_NODES.includes(node.type) && this.classList.contains('hidden')) ||
-            (MASK_NODES.includes(node.type) && !document.getElementById('maskEditor')) ||
-            (MASK_NODES.includes(node.type) && document.getElementById('maskEditor')?.style.display == 'none') 
+            (MASK_NODES.includes(node.type) && !mask_editor_showing())
         )
     }
 
@@ -252,21 +233,16 @@ class Popup extends HTMLSpanElement {
     }
 
     wait_while_mask_editing() {
-        if (!this.seen_editor && document.getElementById('maskEditor')) {
-            console.log("Mask editor has appeared")
+        if (!this.seen_editor && mask_editor_showing()) {
+            mask_editor_listen_for_cancel( this.send_cancel.bind(this) )
             this.seen_editor = true
         }
-        const cancel_button = document.getElementById("maskEditor_topBarCancelButton")
-        if (cancel_button && !cancel_button.filter_listener_added) {
-            cancel_button.addEventListener('click', (e)=>{ this.send_cancel() })
-            cancel_button.filter_listener_added = true
-        }
 
-        if (document.getElementById('maskEditor')?.style.display == 'none') {
-            this._send_response(this.node.imgs[0].src)
-        } else {
+        if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
-        }
+        } else {
+            this._send_response(this.node.imgs[0].src)
+        } 
     }
 
     handle_urls(detail) {
