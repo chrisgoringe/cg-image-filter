@@ -95,7 +95,7 @@ class ImageFilter(PreviewImage):
         return {
             "required": { 
                 "images" : ("IMAGE", ), 
-                "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
+                "timeout": ("INT", {"default": 600, "min":1, "max":9999999, "tooltip": "Timeout in seconds."}),
                 "ontimeout": (["send none", "send all", "send first", "send last"], {}),
                 "node_identifier": ("INT", {"default":0, "max":99999999}),
             },
@@ -161,7 +161,7 @@ class TextImageFilterWithExtras(PreviewImage):
             "required": { 
                 "image" : ("IMAGE", ), 
                 "text" : ("STRING", {"default":""}),
-                "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
+                "timeout": ("INT", {"default": 600, "min":1, "max":9999999, "tooltip": "Timeout in seconds."}),
                 "node_identifier": ("INT", {"default":0, "max":99999999}),            },
             "optional": {
                 "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
@@ -202,7 +202,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
         return {
             "required": { 
                 "image" : ("IMAGE", ), 
-                "timeout": ("INT", {"default": 600, "tooltip": "Timeout in seconds."}),
+                "timeout": ("INT", {"default": 600, "min":1, "max":9999999, "tooltip": "Timeout in seconds."}),
                 "if_no_mask": (["cancel", "send blank"], {}),
                 "node_identifier": ("INT", {"default":0, "max":99999999}),            },
             "optional": {
