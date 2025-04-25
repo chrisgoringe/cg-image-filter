@@ -19,6 +19,11 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/seahorse.png" alt="Seahorse" width="200" height="200">
 
+## New in 1.3.1 ##
+
+- works with old mask editor as well
+- various minor fixes
+
 ## New in 1.3 ##
 
 - pick_list to automatically select images in `Image Filter`
