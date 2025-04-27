@@ -159,7 +159,7 @@ class Popup extends HTMLSpanElement {
             return
         }
 
-        if  (node.widgets?.find((n)=>n.label=='node_identifier')?.value != message.detail.unique) {
+        if  (node._ni_widget?.value != message.detail.unique) {
             console.log(`Message unique id wasn't mine`)
             return
         }
