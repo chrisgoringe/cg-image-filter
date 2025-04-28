@@ -282,11 +282,12 @@ class Popup extends HTMLSpanElement {
         detail.urls.forEach((url, i)=>{
             console.log(url)
             if (i%this.video_frames == 0) {
-                latestImage = create('img', null, this.grid, {src:get_full_url(url)})
+                const thisImage = create('img', null, this.grid, {src:get_full_url(url)})
+                latestImage = thisImage
                 latestImage.onload = this.layout.bind(this)
                 latestImage.image_index = i/this.video_frames
-                latestImage.addEventListener('mouseover', (e)=>this.on_mouse_enter(latestImage))
-                latestImage.addEventListener('mouseout', (e)=>this.on_mouse_out(latestImage))
+                latestImage.addEventListener('mouseover', (e)=>this.on_mouse_enter(thisImage))
+                latestImage.addEventListener('mouseout', (e)=>this.on_mouse_out(thisImage))
                 latestImage.frames = [get_full_url(url),]
             } else {
                 latestImage.frames.push(get_full_url(url))
