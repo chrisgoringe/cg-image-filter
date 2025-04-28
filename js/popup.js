@@ -247,6 +247,8 @@ class Popup extends HTMLSpanElement {
 
     handle_urls(detail) {
         this.n_extras = detail.extras ? detail.extras.length : 0
+        this.video_frames = detail.video_frames || 1
+
         this.extras.innerHTML = ''
         for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras, {value:detail.extras[i]}) }
 
@@ -265,7 +267,8 @@ class Popup extends HTMLSpanElement {
             this.state = State.FILTER
         }
 
-        this.n_images = detail.urls?.length    
+        this.n_images = detail.urls?.length
+
         this.laidOut = false
         this.title_bar.innerText = app.graph._nodes_by_id[detail.uid]?.title ?? "Image Filter"
     
@@ -274,18 +277,42 @@ class Popup extends HTMLSpanElement {
 
         this.grid.innerHTML = ''
         this.overlaygrid.innerHTML = ''
+        var latestImage = null
+
         detail.urls.forEach((url, i)=>{
             console.log(url)
-            const img = create('img', null, this.grid, {src:get_full_url(url)})
+            if (i%this.video_frames == 0) {
+                latestImage = create('img', null, this.grid, {src:get_full_url(url)})
+                latestImage.onload = this.layout.bind(this)
+                latestImage.image_index = i/this.video_frames
+                latestImage.addEventListener('mouseover', (e)=>this.on_mouse_enter(latestImage))
+                latestImage.addEventListener('mouseout', (e)=>this.on_mouse_out(latestImage))
+                latestImage.frames = [get_full_url(url),]
+            } else {
+                latestImage.frames.push(get_full_url(url))
+            }
             if (detail.mask_urls) { create('img', null, this.overlaygrid, {src:get_full_url(detail.mask_urls[i])})}
-            img.onload = this.layout.bind(this)
-            img.image_index = i
-            img.addEventListener('mouseover', (e)=>this.on_mouse_enter(img))
-            img.addEventListener('mouseout', (e)=>this.on_mouse_out(img))
+
         })
 
         this.layout()
+
+        if (this.video_frames>1) {
+            this.frame = 0
+            setTimeout(this.advance_videos.bind(this), 1000)
+        }
         
+    }
+
+    advance_videos() {
+        if (this.state == State.INACTIVE) return
+        
+        this.frame = (this.frame+1)%this.video_frames
+        Array.from(this.grid.children).forEach((img)=>{img.src = img.frames[this.frame]})
+
+        const fps = app.ui.settings.getSettingValue("ImageFilter.FPS")
+        const delay = (fps>0) ? 1000/fps : 1000
+        setTimeout(this.advance_videos.bind(this), delay)
     }
 
     on_mouse_enter(img) {

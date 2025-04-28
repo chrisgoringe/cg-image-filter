@@ -40,6 +40,12 @@ app.registerExtension({
             type: "boolean",
             defaultValue: false
         },
+        {
+            id: "ImageFilter.FPS",
+            name: "Video Frames per Second",
+            type: "int",
+            defaultValue: 1,
+        }
     ],
     setup() {
         create('link', null, document.getElementsByTagName('HEAD')[0], 

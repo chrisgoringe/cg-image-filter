@@ -19,6 +19,10 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/seahorse.png" alt="Seahorse" width="200" height="200">
 
+## New in 1.4 ##
+
+Video previews!
+
 ## New in 1.3.2 ##
 
 - works with old mask editor as well
@@ -118,6 +122,14 @@ these images will be selected without user input. Values will be taken modulo th
 You could also use this to make a larger batch of images (repeat a value and the image will appear repeated times in the output).
 
 Note that this uses zero indexing (the first image is '0').
+
+### video_frames
+
+If you set this to greater than one, the image filter node will batch up each set of n images and treat them as a video snip. 
+
+Set the FPS for playback in the global settings.
+
+This is a new, experimental feature, so please report any issues...
 
 ---
 
