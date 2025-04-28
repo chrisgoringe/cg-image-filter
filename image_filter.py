@@ -78,7 +78,8 @@ class Message:
 HIDDEN = {
             "prompt": "PROMPT", 
             "extra_pnginfo": "EXTRA_PNGINFO", 
-            "uid":"UNIQUE_ID"
+            "uid":"UNIQUE_ID",
+            "node_identifier": "NID",
         }
 
 
@@ -89,6 +90,7 @@ class ImageFilter(PreviewImage):
     FUNCTION = "func"
     CATEGORY = "image_filter"
     OUTPUT_NODE = False
+    DESCRIPTION = "Allows you to preview images and choose which, if any to proceed with"
 
     @classmethod
     def INPUT_TYPES(s):
@@ -97,7 +99,6 @@ class ImageFilter(PreviewImage):
                 "images" : ("IMAGE", ), 
                 "timeout": ("INT", {"default": 600, "min":1, "max":9999999, "tooltip": "Timeout in seconds."}),
                 "ontimeout": (["send none", "send all", "send first", "send last"], {}),
-                "node_identifier": ("INT", {"default":0, "max":99999999}),
             },
             "optional": {
                 "latents" : ("LATENT", {"tooltip": "Optional - if provided, will be output"}),
@@ -107,6 +108,7 @@ class ImageFilter(PreviewImage):
                 "extra2" : ("STRING", {"default":""}),
                 "extra3" : ("STRING", {"default":""}),
                 "pick_list" : ("STRING", {"default":"", "tooltip":"If a comma separated list of integers is provided, the images with these indices will be selected automatically."}),
+                "video_frames" : ("INT", {"default":1, "min":1, "tooltip": "treat each block of n images as a video"}),
             },
             "hidden": HIDDEN,
         }
@@ -115,7 +117,7 @@ class ImageFilter(PreviewImage):
     def IS_CHANGED(cls, pick_list, **kwargs):
         return pick_list or float("NaN")
     
-    def func(self, images, timeout, ontimeout, uid, node_identifier, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list:str="", **kwargs):
+    def func(self, images, timeout, ontimeout, uid, node_identifier, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list:str="", video_frames:int=1, **kwargs):
         e1, e2, e3 = extra1, extra2, extra3
         B = images.shape[0]
 
@@ -127,7 +129,7 @@ class ImageFilter(PreviewImage):
         if len(images_to_return) == 0:
             all_the_same = ( B and all( (images[i]==images[0]).all() for i in range(1,B) )) 
             urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
-            payload = {"uid": uid, "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip}
+            payload = {"uid": uid, "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip, "video_frames":video_frames}
 
             response = send_with_resend(payload, timeout, uid, node_identifier)
 
@@ -138,9 +140,12 @@ class ImageFilter(PreviewImage):
                 if ontimeout=='send none':  images_to_return = []
                 if ontimeout=='send all':   images_to_return = [*range(len(images))]
                 if ontimeout=='send first': images_to_return = [0,]
-                if ontimeout=='send last':  images_to_return = [len(images)-1,] 
+                if ontimeout=='send last':  images_to_return = [len(images)//video_frames,]
 
         if len(images_to_return) == 0: raise InterruptProcessingException()
+
+        if video_frames>1:
+            images_to_return = [ key*video_frames + frm  for key in images_to_return for frm in range(video_frames)   ]
 
         images = torch.stack(list(images[i] for i in images_to_return))
         latents = {"samples": torch.stack(list(latents['samples'][i] for i in images_to_return))} if latents is not None else None
@@ -162,7 +167,7 @@ class TextImageFilterWithExtras(PreviewImage):
                 "image" : ("IMAGE", ), 
                 "text" : ("STRING", {"default":""}),
                 "timeout": ("INT", {"default": 600, "min":1, "max":9999999, "tooltip": "Timeout in seconds."}),
-                "node_identifier": ("INT", {"default":0, "max":99999999}),            },
+            },
             "optional": {
                 "mask" : ("MASK", {"tooltip": "Optional - if provided, will be overlaid on image"}),
                 "tip" : ("STRING", {"default":"", "tooltip": "Optional - if provided, will be displayed in popup window"}),
@@ -204,7 +209,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
                 "image" : ("IMAGE", ), 
                 "timeout": ("INT", {"default": 600, "min":1, "max":9999999, "tooltip": "Timeout in seconds."}),
                 "if_no_mask": (["cancel", "send blank"], {}),
-                "node_identifier": ("INT", {"default":0, "max":99999999}),            },
+            },
             "optional": {
                 "mask" : ("MASK", {"tooltip":"optional initial mask"})
             },

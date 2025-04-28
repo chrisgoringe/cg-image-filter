@@ -40,6 +40,12 @@ app.registerExtension({
             type: "boolean",
             defaultValue: false
         },
+        {
+            id: "ImageFilter.FPS",
+            name: "Video Frames per Second",
+            type: "int",
+            defaultValue: 1,
+        }
     ],
     setup() {
         create('link', null, document.getElementsByTagName('HEAD')[0], 
@@ -63,19 +69,16 @@ app.registerExtension({
             }
         }
         if (FILTER_TYPES.includes(nodeType.comfyClass )) {
-            nodeType.prototype.choose_id = function() {
-                const v = Math.floor(Math.random() * 1000000)
-                this.widgets.find((n)=>n.name=='node_identifier').value = v
-                console.log(`Chose ${v}`)
-            }
+            nodeType.prototype.choose_id = function() { this._ni_widget.value = Math.floor(Math.random() * 1000000) }
 
             const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
-                const idx = this.widgets.findIndex((n)=>n.name=='node_identifier')
-                const old_widget = (idx>=0) ? this.widgets.splice(idx,1)[0] : null
-                const new_widget = ComfyWidgets["INT"](this, "node_identifier", ["INT", { "default":0 }], app).widget
-                new_widget.label = new_widget.name
-                new_widget.type = 'hidden'
+                this._ni_widget = this.widgets.find((n)=>n.name=='node_identifier')
+                if (!(this._ni_widget)) {
+                    this._ni_widget = ComfyWidgets["INT"](this, "node_identifier", ["INT", { "default":0 }], app).widget
+                }
+                this._ni_widget.hidden = true
+                this._ni_widget.computeSize = () => [0,0]
 
                 this.choose_id()
                 return onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
