@@ -1,14 +1,5 @@
 import torch
-from json import JSONEncoder
-
-def _default(self, obj): return getattr(obj.__class__, "to_json", _default.default)(obj)
-_default.default = JSONEncoder().default
-JSONEncoder.default = _default
-
-class AlwaysEqual:
-    def to_json(self): return "*"
-    def __ne__(self, __value: object) -> bool: return False
-    def __eq__(self, __value: object) -> bool: return True
+from comfy.comfy_types.node_typing import IO
     
 class BatchFromImageList:
     @classmethod
@@ -47,11 +38,11 @@ class PickFromList:
     def INPUT_TYPES(s):
         return {
             "required": { 
-                "anything" : (AlwaysEqual(), ), 
+                "anything" : (IO.ANY, ), 
                 "indexes": ("STRING", {"default": ""})
             },
         }
-    RETURN_TYPES = (AlwaysEqual(),)
+    RETURN_TYPES = (IO.ANY,)
     RETURN_NAMES = ("picks",)
 
     FUNCTION = "func"

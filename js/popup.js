@@ -126,7 +126,6 @@ class Popup extends HTMLSpanElement {
 
     close() { 
         this.state = State.INACTIVE
-        this.node.choose_id()
         State.render(this)
     }
 

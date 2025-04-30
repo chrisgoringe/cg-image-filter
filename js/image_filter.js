@@ -66,11 +66,10 @@ app.registerExtension({
                     this.outputs[0].type = type
                     this.inputs[0].type = type
                 }
+                return onConnectionsChange ? onConnectionsChange.apply(this, arguments) : undefined;
             }
         }
         if (FILTER_TYPES.includes(nodeType.comfyClass )) {
-            nodeType.prototype.choose_id = function() { this._ni_widget.value = Math.floor(Math.random() * 1000000) }
-
             const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
                 this._ni_widget = this.widgets.find((n)=>n.name=='node_identifier')
@@ -79,8 +78,8 @@ app.registerExtension({
                 }
                 this._ni_widget.hidden = true
                 this._ni_widget.computeSize = () => [0,0]
+                this._ni_widget.value = Math.floor(Math.random() * 1000000)
 
-                this.choose_id()
                 return onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
             }
         }
