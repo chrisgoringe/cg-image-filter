@@ -132,8 +132,8 @@ def mask_to_image(mask:torch.Tensor):
     return torch.stack([mask, mask, mask, 1.0-mask], -1)
     
 class MaskImageFilter(PreviewImage, LoadImage):
-    RETURN_TYPES = ("IMAGE","MASK")
-    RETURN_NAMES = ("image","mask")
+    RETURN_TYPES = ("IMAGE","MASK","STRING","STRING","STRING")
+    RETURN_NAMES = ("image","mask","extra1","extra2","extra3")
     FUNCTION = "func"
     CATEGORY = "image_filter"
     OUTPUT_NODE = False
@@ -149,6 +149,9 @@ class MaskImageFilter(PreviewImage, LoadImage):
             "optional": {
                 "mask" : ("MASK", {"tooltip":"optional initial mask"}),
                 "tip" : ("STRING", {"default":"", "tooltip": "Optional - if provided, will be displayed in popup window"}),
+                "extra1" : ("STRING", {"default":""}),
+                "extra2" : ("STRING", {"default":""}),
+                "extra3" : ("STRING", {"default":""}),
             },
             "hidden": HIDDEN,
         }
@@ -160,22 +163,22 @@ class MaskImageFilter(PreviewImage, LoadImage):
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs): return True
     
-    def func(self, image, timeout, uid, if_no_mask, node_identifier, mask=None, tip="", **kwargs):
+    def func(self, image, timeout, uid, if_no_mask, node_identifier, mask=None, extra1="", extra2="", extra3="", tip="", **kwargs):
         if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
             saveable = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
         else:
             saveable = image
 
         urls:list[str] = self.save_images(images=saveable, **kwargs)['ui']['images']
-        payload = {"uid": uid, "urls":urls, "maskedit":True, "tip":tip}
+        payload = {"uid": uid, "urls":urls, "maskedit":True, "extras":[extra1, extra2, extra3], "tip":tip}
         response = send_and_wait(payload, timeout, uid, node_identifier)
         
         if (response.masked_image):
             try:
-                return self.load_image(os.path.join('clipspace', response.masked_image)+" [input]")
+                return ( *(self.load_image(os.path.join('clipspace', response.masked_image)+" [input]")), *response.get_extras([extra1, extra2, extra3]) ) 
             except FileNotFoundError:
                 pass
 
         if if_no_mask == 'cancel': 
             raise InterruptProcessingException()
-        return self.load_image(urls[0]['filename']+" [temp]")
+        return ( *(self.load_image(urls[0]['filename']+" [temp]")), *response.get_extras([extra1, extra2, extra3]) ) 

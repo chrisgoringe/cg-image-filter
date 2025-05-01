@@ -94,17 +94,17 @@ class Popup extends HTMLSpanElement {
         this.counter_row          = create('span', 'counter row', this.floating_window.body)
         this.counter_reset_button = create('button', 'counter_reset', this.counter_row, {innerText:"Reset"} )
         this.counter_text         = create('span', 'counter_text', this.counter_row)
-        this.counter_reset_button.addEventListener('click', this.request_reset.bind(this) )
+        this.counter_reset_button.addEventListener('click', this.request_reset.bind(this) ) 
+
+        this.extras_row = create('span', 'extras row', this.floating_window.body)
+
+        this.tip_row = create('span', 'tip row', this.floating_window.body)
 
         this.button_row    = create('span', 'buttons row', this.floating_window.body)
         this.send_button   = create('button', 'control', this.button_row, {innerText:"Send"} )
         this.cancel_button = create('button', 'control', this.button_row, {innerText:"Cancel"} )
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
-
-        this.extras_row = create('span', 'extras row', this.floating_window.body)
-
-        this.tip_row = create('span', 'tip row', this.floating_window.body)
 
         this.text_edit = create('textarea', 'text_edit row', this.floating_window.body)
 
@@ -235,11 +235,14 @@ class Popup extends HTMLSpanElement {
 
             if (detail.timeout) {
                 this.close()
-                return `Timeout`
+                return `Timeout` 
             }
 
             this.allsame = detail.allsame || false
-            this.n_extras = detail.extras ? message.detail.extras.length : 0
+            this.n_extras = detail.extras ? message.detail.extras.length : 0 
+
+            this.extras_row.innerHTML = ''
+            for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras_row, {value:detail.extras[i]}) }
 
             this.set_title(detail)
             
@@ -306,8 +309,7 @@ class Popup extends HTMLSpanElement {
         
         this.video_frames = detail.video_frames || 1
 
-        this.extras_row.innerHTML = ''
-        for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras_row, {value:detail.extras[i]}) }
+
 
         // do this after the extras are set up so that we send the right extras
         if (this.autosend()) {
