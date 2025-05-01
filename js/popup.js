@@ -1,7 +1,7 @@
 import { app, ComfyApp } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js"
 
-import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor } from "./mask_utils.js";
+import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save } from "./mask_utils.js";
 import { Log } from "./log.js";
 import { create } from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
@@ -48,6 +48,7 @@ class State {
         State.visible(popup.floating_window, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
             State.visible(popup.button_row, state!=State.MASK)
                 State.disabled(popup.send_button, (state==State.FILTER || state==State.ZOOMED) && popup.picked.size==0)
+            State.visible(popup.mask_button_row, state==State.MASK)
             State.visible(popup.extras_row, popup.n_extras>0)
             State.visible(popup.tip_row, popup.tip_row.innerHTML.length>0)
             State.visible(popup.text_edit, state==State.TEXT)
@@ -105,6 +106,12 @@ class Popup extends HTMLSpanElement {
         this.cancel_button = create('button', 'control', this.button_row, {innerText:"Cancel"} )
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
+
+        this.mask_button_row    = create('span', 'buttons row', this.floating_window.body)
+        this.mask_send_button   = create('button', 'control', this.mask_button_row, {innerText:"Send"} )
+        this.mask_cancel_button = create('button', 'control', this.mask_button_row, {innerText:"Cancel"} )
+        this.mask_send_button.addEventListener(  'click', press_maskeditor_save )
+        this.mask_cancel_button.addEventListener('click', press_maskeditor_cancel )
 
         this.text_edit = create('textarea', 'text_edit row', this.floating_window.body)
 
@@ -177,7 +184,7 @@ class Popup extends HTMLSpanElement {
         State.render(this)
     }
 
-    maybe_play_sound() { if (app.ui.settings.getSettingValue("ImageFilter.PlaySound")) this.audio.play(); }
+    maybe_play_sound() { if (app.ui.settings.getSettingValue("ImageFilter.UI.PlaySound")) this.audio.play(); }
 
     handle_message(message) { 
         Log.message_in(message)
@@ -192,7 +199,7 @@ class Popup extends HTMLSpanElement {
     }
 
     autosend() {
-        return (app.ui.settings.getSettingValue("ImageFilter.AutosendIdentical") && this.allsame)
+        return (app.ui.settings.getSettingValue("ImageFilter.Actions.AutosendIdentical") && this.allsame)
     }
 
     _handle_message(message, use_saved) {
@@ -212,7 +219,7 @@ class Popup extends HTMLSpanElement {
 
         this.node = node
 
-        if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("ImageFilter.SmallWindow") && !use_saved && !this.autosend()) {
+        if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("ImageFilter.UI.SmallWindow") && !use_saved && !this.autosend()) {
             this.state = State.TINY
             this.saved_message = message
             this.tiny_image.src = get_full_url(message.detail.urls[message.detail.urls.length-1])
@@ -291,6 +298,7 @@ class Popup extends HTMLSpanElement {
     wait_while_mask_editing() {
         if (!this.seen_editor && mask_editor_showing()) {
             mask_editor_listen_for_cancel( this.send_cancel.bind(this) )
+            State.render(this)
             this.seen_editor = true
         }
 
@@ -371,7 +379,7 @@ class Popup extends HTMLSpanElement {
         this.frame = (this.frame+1)%this.video_frames
         Array.from(this.grid.children).forEach((img)=>{img.src = img.frames[this.frame]})
 
-        const fps = app.ui.settings.getSettingValue("ImageFilter.FPS")
+        const fps = app.ui.settings.getSettingValue("ImageFilter.Video.FPS")
         const delay = (fps>0) ? 1000/fps : 1000
         setTimeout(this.advance_videos.bind(this), delay)
     }
@@ -452,7 +460,7 @@ class Popup extends HTMLSpanElement {
             return
         }
         const s = `${n}`
-        if (app.ui.settings.getSettingValue("ImageFilter.ClickSends")) {
+        if (app.ui.settings.getSettingValue("ImageFilter.Actions.ClickSends")) {
             this.picked.add(s)
             this._send_response()
         } else {

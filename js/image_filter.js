@@ -12,40 +12,46 @@ app.registerExtension({
 	name: "cg.image_filter",
     settings: [
         {
-            id: "ImageFilter.PlaySound",
+            id: "Image Filter. Version",
+            name: "Version: 1.4.2",
+            type: () => {return document.createElement('span')},
+        },
+        {
+            id: "Image Filter.UI.Play Sound",
             name: "Play sound when activating",
             type: "boolean",
             defaultValue: true
         },
         {
-            id: "ImageFilter.ClickSends",
-            name: "In Image Filter clicking an image sends it",
+            id: "Image Filter.Actions.Click Sends",
+            name: "Clicking an image sends it",
             type: "boolean",
             defaultValue: false
         },
         {
-            id: "ImageFilter.AutosendIdentical",
-            name: "In Image Filter, if all images are identical, autosend one",
+            id: "Image Filter.Actions.Autosend Identical",
+            name: "If all images are identical, autosend one",
             type: "boolean",
             defaultValue: false
         },
         {
-            id: "ImageFilter.SmallWindow",
-            name: "Initially show a small popup instead of covering the screen",
+            id: "Image Filter.UI.Small Window",
+            name: "Show a small popup instead of covering the screen",
             type: "boolean",
+            tooltip: "click the small popup to activate it",
             defaultValue: false
         },
         {
-            id: "ImageFilter.DetailedLogging",
+            id: "Image Filter.Z.Detailed Logging",
             name: "Turn on detailed logging",
             type: "boolean",
             defaultValue: false
         },
         {
-            id: "ImageFilter.FPS",
+            id: "Image Filter.Video.FPS",
             name: "Video Frames per Second",
             type: "int",
-            defaultValue: 1,
+            defaultValue: 5,
         }
     ],
     setup() {
