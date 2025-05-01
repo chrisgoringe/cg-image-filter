@@ -23,7 +23,6 @@
 
 .cgfloat_body {
     min-width: fit-content;
-    min-height: 50px;
     display:flex;
     flex-direction: column;
 }
@@ -59,12 +58,24 @@
     min-width: 70px;
 }
 
-
+/* Extras */
 .cgfloat_body .row.extras {
     flex-direction: column;
 }
 
+.cgfloat_body .row.extras .extra {
+    width: 100%;
+    margin: 2px 0;
+}
+
+/* Tips */
 .cgfloat_body .row.tip {
-    
+    margin: 4px;
+    justify-content: flex-start;
+}
+
+/* Text Edit */
+.cgfloat_body .row.text_edit {
+    margin: 4px;
 }
 

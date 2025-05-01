@@ -29,6 +29,9 @@ class State {
         if (value) item.classList.remove('hidden')
         else item.classList.add('hidden')
     }
+    static disabled(item, value) {
+        item.disabled = value
+    }
     static highlighted(item, value) {
         if (value) item.classList.add('highlighted')
         else item.classList.remove('highlighted')
@@ -37,13 +40,18 @@ class State {
     static render(popup) {
         const state = popup.state
         State.visible(popup, (state==State.FILTER || state==State.TEXT || state==State.ZOOMED))
-        State.visible(popup.tiny_window, state==State.TINY)
-        //State.visible(popup.counter, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
-        State.visible(popup.zoomed, state==State.ZOOMED)
-        State.visible(popup.text_edit, state==State.TEXT)
-        State.visible(popup.send_button, true /*!app.ui.settings.getSettingValue("ImageFilter.ClickSends")*/)
-        State.visible(popup.floating_window, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
 
+        State.visible(popup.tiny_window, state==State.TINY)
+
+        State.visible(popup.zoomed, state==State.ZOOMED)
+
+        State.visible(popup.floating_window, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
+            State.visible(popup.button_row, state!=State.MASK)
+                State.disabled(popup.send_button, (state==State.FILTER || state==State.ZOOMED) && popup.picked.length==0)
+            State.visible(popup.extras_row, popup.n_extras>0)
+            State.visible(popup.tip_row, popup.tip_row.innerHTML.length>0)
+            State.visible(popup.text_edit, state==State.TEXT)
+        
         if (state==State.ZOOMED) {
             const img_index = popup.zoomed_image_holder.image_index
             State.highlighted(popup.zoomed, popup.picked.has(`${img_index}`))
@@ -66,13 +74,12 @@ class Popup extends HTMLSpanElement {
         this.overlaygrid        = create('span', 'grid overlaygrid', this)
         this.grid.addEventListener('click', this.on_click.bind(this))
 
-
         this.zoomed             = create('span', 'zoomed', this)
         this.zoomed_image       = create('img', 'zoomed_image', this.zoomed)
         this.zoomed_number      = create('span', 'zoomed_number', this.zoomed)
 
-        this.text_edit          = create('textarea', 'text_edit', this)
-        this.buttons            = create('span', 'buttons', this)
+        //this.text_edit          = create('textarea', 'text_edit', this)
+        //this.buttons            = create('span', 'buttons', this)
 
         //this.tip                = create('span', 'tip', this.buttons)
 
@@ -99,6 +106,9 @@ class Popup extends HTMLSpanElement {
 
         this.tip_row = create('span', 'tip row', this.floating_window.body)
 
+        this.text_edit = create('textarea', 'text_edit row', this.floating_window.body)
+
+        this.picked = new Set()
     
         document.addEventListener("keydown", this.on_key_down.bind(this))
 
@@ -124,7 +134,7 @@ class Popup extends HTMLSpanElement {
             return
         }
 
-        msg.unique = `${this.unique}`
+        msg.unique = `${this.node._ni_widget?.value}`
 
         if (!msg.special) {
             if (this.n_extras>0) {
@@ -188,7 +198,6 @@ class Popup extends HTMLSpanElement {
     _handle_message(message, use_saved) {
 
         const uid = message.detail.uid
-        const unique = message.detail.unique
         const node = app.graph._nodes_by_id[uid]
 
         if (!node) {
@@ -202,8 +211,8 @@ class Popup extends HTMLSpanElement {
         }
 
         this.node = node
-
         this.allsame = message.detail.allsame || false
+        this.n_extras = message.detail.extras ? message.detail.extras.length : 0
 
         if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("ImageFilter.SmallWindow") && !use_saved && !this.autosend()) {
             this.state = State.TINY
@@ -284,12 +293,16 @@ class Popup extends HTMLSpanElement {
         if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
         } else {
-            this._send_response({masked_image:this.node.imgs[0].src})
+            this._send_response({masked_image:this.extract_filename(this.node.imgs[0].src)})
         } 
     }
 
+    extract_filename(url_string) {
+        return (new URL(url_string)).searchParams.get('filename')
+    }
+
     handle_urls(detail) {
-        this.n_extras = detail.extras ? detail.extras.length : 0
+        
         this.video_frames = detail.video_frames || 1
 
         this.extras_row.innerHTML = ''
@@ -306,7 +319,7 @@ class Popup extends HTMLSpanElement {
             this.state = State.TEXT
             //this.text_edit.innerHTML = detail.text
             this.text_edit.value = detail.text
-            if (detail.textareaheight) document.getElementsByClassName('cg_popup')[0].style.setProperty('--text_area_height', `${detail.textareaheight}px`)
+            if (detail.textareaheight) this.text_edit.style.height = `${detail.textareaheight}px`
         } else {
             this.state = State.FILTER
         }

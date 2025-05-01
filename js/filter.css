@@ -128,14 +128,7 @@
     padding: 2px;
 }
 
-.cg_popup .text_edit {
-    position: absolute;
-    display:block;
-    width: 80%;
-    left: 10%;
-    bottom: 10px;
-    height: calc(var(--text_area_height) - 20px);
-}
+
 
 .cg_popup.hidden {
     display:none

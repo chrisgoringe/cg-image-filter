@@ -72,7 +72,7 @@ class ImageFilter(PreviewImage):
                 if ontimeout=='send first': images_to_return = [0,]
                 if ontimeout=='send last':  images_to_return = [len(images)//video_frames,]
             else:
-                e1, e2, e3 = response.extras
+                e1, e2, e3 = response.get_extras([extra1, extra2, extra3])
                 images_to_return = response.selection
 
         if len(images_to_return) == 0: raise InterruptProcessingException()
@@ -126,7 +126,7 @@ class TextImageFilterWithExtras(PreviewImage):
         if response.timeout:
             return (image, text, extra1, extra2, extra3)
 
-        return (image, response.text, *response.extras) 
+        return (image, response.text, *response.get_extras([extra1, extra2, extra3])) 
 
 def mask_to_image(mask:torch.Tensor):
     return torch.stack([mask, mask, mask, 1.0-mask], -1)

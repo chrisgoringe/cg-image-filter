@@ -1,3 +1,5 @@
+import { app } from "../../scripts/app.js";
+
 export class Log {
     static log(s) { if (s) console.log(s) }
     static error(e) { console.error(e) }
