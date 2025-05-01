@@ -1,79 +1,11 @@
-from server import PromptServer
-from aiohttp import web
+
+
 from nodes import PreviewImage, LoadImage
-from comfy.model_management import InterruptProcessingException, throw_exception_if_processing_interrupted
-import time, os, random
+from comfy.model_management import InterruptProcessingException
+import os
 import torch
 
-REQUEST_RESHOW = "-1"
-REQUEST_TIMER_RESET = "-2"
-CANCEL = "-3"
-WAITING_FOR_RESPONSE = "-9"
-
-SPECIALS = [REQUEST_RESHOW, REQUEST_TIMER_RESET, CANCEL, WAITING_FOR_RESPONSE]
-
-class CancelledByUser(Exception): pass
-
-##
-#
-# response should be a dict just containing key 'response' 
-# which holds a comma separated list of integers of selected images (0 indexed)
-# where '' indicates cancel
-#
-##
-
-@PromptServer.instance.routes.post('/cg-image-filter-message')
-async def cg_image_filter_message(request):
-    post = await request.post()
-    response = post.get("response")
-    if (Message.data is None or (Message.data != CANCEL and response not in SPECIALS)):
-        Message.setdata(response, "response")
-    else:
-        print(f"Ignoring response {response} as current response is {Message.data}")
-    return web.json_response({})
-
-def wait(secs, uid, unique):
-    Message.setdata(None, "start of wait")
-    end_time = time.monotonic() + secs
-    while(time.monotonic() < end_time and Message.data is None): 
-        throw_exception_if_processing_interrupted()
-        PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic()), "uid": uid, "unique":unique})
-        time.sleep(0.2)
-    response = Message.data
-    Message.setdata(None, "read response")
-    if response is None:
-        PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "uid": uid, "unique":unique})
-    
-    return response
-
-def send_with_resend(payload, timeout, uid, unique):
-    response = WAITING_FOR_RESPONSE
-    payload['unique'] = unique
-    while response in SPECIALS:
-        PromptServer.instance.send_sync("cg-image-filter-images", payload)
-        response = wait(timeout, uid, unique)
-        if response == CANCEL:  
-            raise InterruptProcessingException()
-    if Message.unique != unique:
-        print("Mismatched uniques...")
-    return response
-
-def mask_to_image(mask:torch.Tensor):
-    return torch.stack([mask, mask, mask, 1.0-mask], -1)
-
-class Message:
-    data:str = None
-    unique:str = None
-    @classmethod
-    def setdata(cls, v, comment):
-        #print(f"Message.data set to {v} (${comment})")
-        if v:
-            chop = v.split('!unique!')
-            cls.data = chop[0]
-            cls.unique = chop[1] if len(chop)>1 else None
-        else:
-            cls.data = None
-            cls.unique = None
+from .image_filter_messaging import send_and_wait, Response
 
 HIDDEN = {
             "prompt": "PROMPT", 
@@ -81,8 +13,6 @@ HIDDEN = {
             "uid":"UNIQUE_ID",
             "node_identifier": "NID",
         }
-
-
 
 class ImageFilter(PreviewImage):
     RETURN_TYPES = ("IMAGE","LATENT","MASK","STRING","STRING","STRING","STRING")
@@ -134,16 +64,16 @@ class ImageFilter(PreviewImage):
             urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
             payload = {"uid": uid, "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip, "video_frames":video_frames}
 
-            response = send_with_resend(payload, timeout, uid, node_identifier)
+            response:Response = send_and_wait(payload, timeout, uid, node_identifier)
 
-            if response:
-                response, e1, e2, e3 = response.split("|||")
-                images_to_return = [int(x) for x in response.split(",") if x]
-            else:
+            if response.timeout:
                 if ontimeout=='send none':  images_to_return = []
                 if ontimeout=='send all':   images_to_return = [*range(len(images))]
                 if ontimeout=='send first': images_to_return = [0,]
                 if ontimeout=='send last':  images_to_return = [len(images)//video_frames,]
+            else:
+                e1, e2, e3 = response.extras
+                images_to_return = response.selection
 
         if len(images_to_return) == 0: raise InterruptProcessingException()
 
@@ -192,11 +122,14 @@ class TextImageFilterWithExtras(PreviewImage):
         if textareaheight is not None: payload['textareaheight'] = textareaheight
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
 
-        response = send_with_resend(payload, timeout, uid, node_identifier)
-        response = response.split("|||") if response else [text, extra1, extra2, extra3]
+        response = send_and_wait(payload, timeout, uid, node_identifier)
+        if response.timeout:
+            return (image, text, extra1, extra2, extra3)
 
-        return (image, *response) 
+        return (image, response.text, *response.extras) 
 
+def mask_to_image(mask:torch.Tensor):
+    return torch.stack([mask, mask, mask, 1.0-mask], -1)
     
 class MaskImageFilter(PreviewImage, LoadImage):
     RETURN_TYPES = ("IMAGE","MASK")
@@ -214,7 +147,8 @@ class MaskImageFilter(PreviewImage, LoadImage):
                 "if_no_mask": (["cancel", "send blank"], {}),
             },
             "optional": {
-                "mask" : ("MASK", {"tooltip":"optional initial mask"})
+                "mask" : ("MASK", {"tooltip":"optional initial mask"}),
+                "tip" : ("STRING", {"default":"", "tooltip": "Optional - if provided, will be displayed in popup window"}),
             },
             "hidden": HIDDEN,
         }
@@ -226,20 +160,19 @@ class MaskImageFilter(PreviewImage, LoadImage):
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs): return True
     
-    def func(self, image, timeout, uid, if_no_mask, node_identifier, mask=None, **kwargs):
+    def func(self, image, timeout, uid, if_no_mask, node_identifier, mask=None, tip="", **kwargs):
         if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
             saveable = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
         else:
             saveable = image
 
         urls:list[str] = self.save_images(images=saveable, **kwargs)['ui']['images']
-        payload = {"uid": uid, "urls":urls, "maskedit":True}
-        response = send_with_resend(payload, timeout, uid, node_identifier)
+        payload = {"uid": uid, "urls":urls, "maskedit":True, "tip":tip}
+        response = send_and_wait(payload, timeout, uid, node_identifier)
         
-        if (response):
+        if (response.masked_image):
             try:
-                filename = response.split('=')[1].split('&')[0]
-                return self.load_image(os.path.join('clipspace', filename)+" [input]")
+                return self.load_image(os.path.join('clipspace', response.masked_image)+" [input]")
             except FileNotFoundError:
                 pass
 

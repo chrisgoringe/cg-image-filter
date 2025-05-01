@@ -4,6 +4,7 @@ import { api } from "../../scripts/api.js";
 import { create } from "./utils.js";
 import { popup } from "./popup.js";
 import { ComfyWidgets } from "../../scripts/widgets.js";
+import { FloatingWindow } from "./floating_window.js";
 
 const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
 
@@ -50,6 +51,8 @@ app.registerExtension({
     setup() {
         create('link', null, document.getElementsByTagName('HEAD')[0], 
             {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./filter.css", import.meta.url).href } )
+        create('link', null, document.getElementsByTagName('HEAD')[0], 
+            {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./floating_window.css", import.meta.url).href } )
         api.addEventListener("execution_interrupted", popup.send_cancel.bind(popup));
         api.addEventListener("cg-image-filter-images",popup.handle_message.bind(popup));
     },
@@ -84,5 +87,6 @@ app.registerExtension({
             }
         }
     },
+
 
 })

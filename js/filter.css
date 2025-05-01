@@ -7,16 +7,6 @@
     --text_area_height: 150px;
 }
 
-.cg_counter {
-    position: absolute;
-    top: 45px;
-    left: 70px;
-    color: white;
-    padding: 10px;
-    z-index: 110000;
-    background-color: rgba(128, 128, 128, 0.5);
-    text-align: center;
-}
 
 .tiny_window {
     position: absolute;
@@ -37,19 +27,14 @@
     pointer-events: none;
 }
 
-.cg_counter .counter_text {}
 
-.cg_counter .counter_reset {
-    margin-left: 5px;
-    padding: 1px;
-}
 
 .cg_popup .grid {
     position: absolute;
-    width:80%;
-    left:5%;
-    height:calc(90% - var(--text_area_height));
-    top:5%;
+    width:70%;
+    left:15%;
+    height:calc(100% - 60px - var(--text_area_height));
+    top:55px;
     display: grid;
     align-content: space-evenly;
     justify-content: space-evenly;
@@ -62,9 +47,10 @@
 
 .cg_popup .title {
     position: absolute;
-    left: 40%;
-    top: 2%;
-    font-size: larger;
+    width:100%;
+    text-align: center;
+    top: 10px;
+    font-size: 250%;
 }
 
 .cg_popup .tip {
@@ -140,18 +126,6 @@
 .cg_popup .zoomed.highlighted .zoomed_image {
     border: 3px solid green;
     padding: 2px;
-}
-
-.cg_popup .buttons button {
-    margin: 5px 0 5px 0;
-    padding: 4px;
-    display: block;
-    width: 100px;
-}
-
-.cg_popup .buttons input {
-    padding: 4px;
-    display: inline;
 }
 
 .cg_popup .text_edit {

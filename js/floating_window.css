@@ -1,0 +1,70 @@
+
+.cgfloat {
+    position: absolute;
+    z-index: 999999;
+    border: 1px solid black;
+    background-color: rgba(95, 158, 160, 0.713);
+    width: fit-content;
+}
+
+.cgfloat.hidden {
+    display:none
+}
+
+.cgfloat_header {
+    width: 100%;
+    text-align: center;
+    background-color: rgba(28, 51, 52, 0.713);
+    color: whitesmoke;
+    border-bottom: 1px solid black;
+    padding:4px;
+    font-size:larger;
+}
+
+.cgfloat_body {
+    min-width: fit-content;
+    min-height: 50px;
+    display:flex;
+    flex-direction: column;
+}
+
+.cgfloat_body .row {
+    color: white;
+    padding: 0px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.45);
+}
+
+/* Countdown */
+.cgfloat_body .counter_text {
+    min-width:50px;
+    text-align: right;
+}
+
+.cgfloat_body .counter_reset {
+    margin-left: 5px;
+    padding: 1px;
+}
+
+/* Buttons */
+.cgfloat_body .row.buttons {
+    justify-content: space-evenly;
+}
+
+.cgfloat_body button {
+    margin: 4px;
+    padding: 2px;
+    min-width: 70px;
+}
+
+
+.cgfloat_body .row.extras {
+    flex-direction: column;
+}
+
+.cgfloat_body .row.tip {
+    
+}
+

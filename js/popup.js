@@ -4,6 +4,7 @@ import { api } from "../../scripts/api.js"
 import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor } from "./mask_utils.js";
 import { Log } from "./log.js";
 import { create } from "./utils.js";
+import { FloatingWindow } from "./floating_window.js";
 
 //const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
 const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras",]
@@ -37,10 +38,11 @@ class State {
         const state = popup.state
         State.visible(popup, (state==State.FILTER || state==State.TEXT || state==State.ZOOMED))
         State.visible(popup.tiny_window, state==State.TINY)
-        State.visible(popup.counter, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
+        //State.visible(popup.counter, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
         State.visible(popup.zoomed, state==State.ZOOMED)
         State.visible(popup.text_edit, state==State.TEXT)
         State.visible(popup.send_button, true /*!app.ui.settings.getSettingValue("ImageFilter.ClickSends")*/)
+        State.visible(popup.floating_window, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
 
         if (state==State.ZOOMED) {
             const img_index = popup.zoomed_image_holder.image_index
@@ -62,32 +64,42 @@ class Popup extends HTMLSpanElement {
         
         this.grid               = create('span', 'grid', this)
         this.overlaygrid        = create('span', 'grid overlaygrid', this)
+        this.grid.addEventListener('click', this.on_click.bind(this))
+
+
         this.zoomed             = create('span', 'zoomed', this)
         this.zoomed_image       = create('img', 'zoomed_image', this.zoomed)
         this.zoomed_number      = create('span', 'zoomed_number', this.zoomed)
-        this.text_edit          = create('textarea', 'text_edit', this)
-        this.title_bar          = create('span', 'title', this)
-        this.buttons            = create('span', 'buttons', this)
-        this.checkboxes         = create('span', null, this.buttons)
 
-        this.send_button        = create('button', 'control', this.buttons, {innerText:"Send"} )
-        this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel"} )
-        this.extras             = create('span', 'extras', this.buttons)
-        this.tip                = create('span', 'tip', this.buttons)
+        this.text_edit          = create('textarea', 'text_edit', this)
+        this.buttons            = create('span', 'buttons', this)
+
+        //this.tip                = create('span', 'tip', this.buttons)
 
         this.tiny_window        = create('span', 'tiny_window hidden', document.body)
         this.tiny_image         = create('img', 'tiny_image', this.tiny_window)
         this.tiny_window.addEventListener('click', this.handle_deferred_message.bind(this))
 
-        this.counter            = create('span', 'cg_counter hidden', document.body)
-        this.counter_text       = create('span', 'counter_text', this.counter)
-        this.counter_reset_button = create('button', 'counter_reset', this.counter, {innerText:"Reset"} )
 
-        this.grid.addEventListener('click', this.on_click.bind(this))
-        this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
-        this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
+        this.floating_window = new FloatingWindow('', 100, 100)
+        document.body.append(this.floating_window)
+
+        this.counter_row          = create('span', 'counter row', this.floating_window.body)
+        this.counter_reset_button = create('button', 'counter_reset', this.counter_row, {innerText:"Reset"} )
+        this.counter_text         = create('span', 'counter_text', this.counter_row)
         this.counter_reset_button.addEventListener('click', this.request_reset.bind(this) )
 
+        this.button_row    = create('span', 'buttons row', this.floating_window.body)
+        this.send_button   = create('button', 'control', this.button_row, {innerText:"Send"} )
+        this.cancel_button = create('button', 'control', this.button_row, {innerText:"Cancel"} )
+        this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
+        this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
+
+        this.extras_row = create('span', 'extras row', this.floating_window.body)
+
+        this.tip_row = create('span', 'tip row', this.floating_window.body)
+
+    
         document.addEventListener("keydown", this.on_key_down.bind(this))
 
         document.body.appendChild(this)
@@ -96,33 +108,59 @@ class Popup extends HTMLSpanElement {
         State.render(this)
     }
 
-    _send_response(msg, special_message, keep_open) {
+    _send_response(msg={}, keep_open=false) {
+        /*
+        msg is a dict. Valid keys are:
+        *selection    (list[int])
+        *text         (string)
+         special      (int)
+         masked_image (string)
+        *extras       (list of strings)
+        *unique       (string)
+                (*) are added
+        */
         if (Date.now()-this.last_response_sent < 1000) {
             Log.message_out(msg, "(throttled)")
             return
         }
 
-        if (!special_message) {
-            Array.from(this.extras.children).forEach((e)=>{ msg = msg + "|||" + e.value })
+        msg.unique = `${this.unique}`
+
+        if (!msg.special) {
+            if (this.n_extras>0) {
+                msg.extras = []
+                Array.from(this.extras_row.children).forEach((e)=>{ msg.extras.push(e.value) })
+            }
+            if (this.state==State.FILTER || this.state==State.ZOOMED) msg.selection = this.picked
+            if (this.state==State.TEXT) msg.text = this.text_edit.value
+            
             this.last_response_sent = Date.now()
         }
 
         try {
             const body = new FormData();
-            msg = `${msg}!unique!${this.unique}`
-            body.append('response', msg);
+            body.append('response', JSON.stringify(msg));
             api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
             Log.message_out(msg)
-        } catch (e) { Log.error(e) }
-        finally { if (!keep_open) this.close() }
+        } catch (e) { 
+            Log.error(e) 
+        } finally { 
+            if (!keep_open) this.close() 
+        }
 
     }
 
-    send_current_state() { this._send_response( (this.state == State.TEXT) ? this.text_edit.value : Array.from(this.picked).join() ) }
+    send_current_state() { 
+        if (this.state == State.TEXT) {
+            this._send_response()
+        } else {
+            this._send_response()
+        }
+    }
     
-    send_cancel() { this._send_response(CANCEL, true) }
+    send_cancel() { this._send_response({special:CANCEL}) }
 
-    request_reset() { this._send_response(REQUEST_RESHOW, true, true) }
+    request_reset() { this._send_response({special:REQUEST_RESHOW}, true) }
 
     close() { 
         this.state = State.INACTIVE
@@ -193,14 +231,15 @@ class Popup extends HTMLSpanElement {
                 return `Timeout`
             }
 
+            this.set_title(detail)
             
             if (!use_saved && !this.autosend()) this.maybe_play_sound()
 
             if (detail.maskedit)   this.handle_maskedit(detail) 
             else if (detail.urls)  this.handle_urls(detail)
 
-            if (detail.tip) this.tip.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>')
-            else this.tip.innerHTML = ""
+            if (detail.tip) this.tip_row.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>')
+            else this.tip_row.innerHTML = ""
             
         } finally { this.handling_message = false }  
     }
@@ -213,6 +252,11 @@ class Popup extends HTMLSpanElement {
             (POPUP_NODES.includes(node.type) && this.classList.contains('hidden')) ||
             (MASK_NODES.includes(node.type) && !mask_editor_showing())
         )
+    }
+
+    set_title(detail) {
+        const title = app.graph._nodes_by_id[detail.uid]?.title ?? "Image Filter"
+        this.floating_window.set_title(title)
     }
 
     handle_maskedit(detail) {
@@ -240,7 +284,7 @@ class Popup extends HTMLSpanElement {
         if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
         } else {
-            this._send_response(this.node.imgs[0].src)
+            this._send_response({masked_image:this.node.imgs[0].src})
         } 
     }
 
@@ -248,12 +292,13 @@ class Popup extends HTMLSpanElement {
         this.n_extras = detail.extras ? detail.extras.length : 0
         this.video_frames = detail.video_frames || 1
 
-        this.extras.innerHTML = ''
-        for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras, {value:detail.extras[i]}) }
+        this.extras_row.innerHTML = ''
+        for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras_row, {value:detail.extras[i]}) }
 
         // do this after the extras are set up so that we send the right extras
         if (this.autosend()) {
-            this._send_response("0")
+            this.picked.add(0)
+            this._send_response()
             return
         }
 
@@ -268,8 +313,8 @@ class Popup extends HTMLSpanElement {
 
         this.n_images = detail.urls?.length
 
-        this.laidOut = false
-        this.title_bar.innerText = app.graph._nodes_by_id[detail.uid]?.title ?? "Image Filter"
+        this.laidOut = -1
+
     
         this.picked = new Set()
         if (this.n_images==1) this.picked.add('0')
@@ -392,7 +437,8 @@ class Popup extends HTMLSpanElement {
         }
         const s = `${n}`
         if (app.ui.settings.getSettingValue("ImageFilter.ClickSends")) {
-            this._send_response(s)
+            this.picked.add(s)
+            this._send_response()
         } else {
             if (this.picked.has(s)) this.picked.delete(s)
             else this.picked.add(s)
@@ -407,11 +453,12 @@ class Popup extends HTMLSpanElement {
     }
 
     layout() {
-        if (this.laidOut) return
+        const box = this.grid.getBoundingClientRect()
+        if (this.laidOut==box.width) return
 
         const im_w = this.grid.firstChild.naturalWidth
         const im_h = this.grid.firstChild.naturalHeight
-        const box = this.grid.getBoundingClientRect()
+        
         var per_row
         if (!im_w || !im_h || !box.width || !box.height) {
             setTimeout(this.layout.bind(this), 100)
@@ -428,7 +475,7 @@ class Popup extends HTMLSpanElement {
                 }
             }
             per_row = best_pick
-            this.laidOut = true
+            this.laidOut = box.width
         }
 
         const rows = Math.ceil(this.n_images/per_row)    
