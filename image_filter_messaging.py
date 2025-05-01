@@ -3,7 +3,6 @@ from aiohttp import web
 from comfy.model_management import InterruptProcessingException, throw_exception_if_processing_interrupted
 import time, json
 from typing import Optional
-from dataclasses import dataclass
 
 REQUEST_RESHOW = "-1"
 REQUEST_TIMER_RESET = "-2"
@@ -12,16 +11,17 @@ WAITING_FOR_RESPONSE = "-9"
 
 SPECIALS = [REQUEST_RESHOW, REQUEST_TIMER_RESET, CANCEL, WAITING_FOR_RESPONSE]
 
-@dataclass
 class Response:
-    selection:      Optional[list[int]] = None
-    text:           Optional[str]       = None
-    masked_image:   Optional[str]       = None
-    extras:         Optional[list[str]] = []
-    timeout = False
+    def __init__(self, selection:Optional[list[int]] = None, text:Optional[str] = None,
+                        masked_image:Optional[str] = None, extras:Optional[list[str]] = None):
+        self.selection = selection
+        self.text = text
+        self.masked_image = masked_image
+        self.extras = extras
+        self.timeout = False
 
     def get_extras(self,defaults:list[str]) -> list[str]:
-        return self.extras or defaults  
+         return self.extras or defaults  
 
 class TimeoutResponse(Response):
     def __init__(self):
@@ -71,7 +71,7 @@ async def cg_image_filter_message(request):
     elif (message.real and not MessageState.cancelled()):
         MessageState.latest = message
     else:
-        print(f"Ignoring response {response} as current response is {MessageState.response}")
+        print(f"Ignoring response {response}")
 
     return web.json_response({})
 

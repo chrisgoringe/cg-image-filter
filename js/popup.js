@@ -47,7 +47,7 @@ class State {
 
         State.visible(popup.floating_window, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
             State.visible(popup.button_row, state!=State.MASK)
-                State.disabled(popup.send_button, (state==State.FILTER || state==State.ZOOMED) && popup.picked.length==0)
+                State.disabled(popup.send_button, (state==State.FILTER || state==State.ZOOMED) && popup.picked.size==0)
             State.visible(popup.extras_row, popup.n_extras>0)
             State.visible(popup.tip_row, popup.tip_row.innerHTML.length>0)
             State.visible(popup.text_edit, state==State.TEXT)
@@ -141,7 +141,7 @@ class Popup extends HTMLSpanElement {
                 msg.extras = []
                 Array.from(this.extras_row.children).forEach((e)=>{ msg.extras.push(e.value) })
             }
-            if (this.state==State.FILTER || this.state==State.ZOOMED) msg.selection = this.picked
+            if (this.state==State.FILTER || this.state==State.ZOOMED) msg.selection = Array.from(this.picked)
             if (this.state==State.TEXT) msg.text = this.text_edit.value
             
             this.last_response_sent = Date.now()
@@ -211,8 +211,6 @@ class Popup extends HTMLSpanElement {
         }
 
         this.node = node
-        this.allsame = message.detail.allsame || false
-        this.n_extras = message.detail.extras ? message.detail.extras.length : 0
 
         if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("ImageFilter.SmallWindow") && !use_saved && !this.autosend()) {
             this.state = State.TINY
@@ -239,6 +237,9 @@ class Popup extends HTMLSpanElement {
                 this.close()
                 return `Timeout`
             }
+
+            this.allsame = detail.allsame || false
+            this.n_extras = detail.extras ? message.detail.extras.length : 0
 
             this.set_title(detail)
             

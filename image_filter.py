@@ -80,7 +80,7 @@ class ImageFilter(PreviewImage):
         if video_frames>1:
             images_to_return = [ key*video_frames + frm  for key in images_to_return for frm in range(video_frames)   ]
 
-        images = torch.stack(list(images[i] for i in images_to_return))
+        images = torch.stack(list(images[int(i)] for i in images_to_return))
         latents = {"samples": torch.stack(list(latents['samples'][i] for i in images_to_return))} if latents is not None else None
         masks = torch.stack(list(masks[i] for i in images_to_return)) if masks is not None else None
                 
