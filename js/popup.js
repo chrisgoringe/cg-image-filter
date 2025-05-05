@@ -184,7 +184,7 @@ class Popup extends HTMLSpanElement {
         State.render(this)
     }
 
-    maybe_play_sound() { if (app.ui.settings.getSettingValue("ImageFilter.UI.PlaySound")) this.audio.play(); }
+    maybe_play_sound() { if (app.ui.settings.getSettingValue("Image Filter.UI.Play Sound")) this.audio.play(); }
 
     handle_message(message) { 
         Log.message_in(message)
@@ -219,7 +219,7 @@ class Popup extends HTMLSpanElement {
 
         this.node = node
 
-        if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("ImageFilter.UI.SmallWindow") && !use_saved && !this.autosend()) {
+        if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("Image Filter.UI.Small Window") && !use_saved && !this.autosend()) {
             this.state = State.TINY
             this.saved_message = message
             this.tiny_image.src = get_full_url(message.detail.urls[message.detail.urls.length-1])
@@ -379,7 +379,7 @@ class Popup extends HTMLSpanElement {
         this.frame = (this.frame+1)%this.video_frames
         Array.from(this.grid.children).forEach((img)=>{img.src = img.frames[this.frame]})
 
-        const fps = app.ui.settings.getSettingValue("ImageFilter.Video.FPS")
+        const fps = app.ui.settings.getSettingValue("Image Filter.Video.FPS")
         const delay = (fps>0) ? 1000/fps : 1000
         setTimeout(this.advance_videos.bind(this), delay)
     }
@@ -460,7 +460,7 @@ class Popup extends HTMLSpanElement {
             return
         }
         const s = `${n}`
-        if (app.ui.settings.getSettingValue("ImageFilter.Actions.ClickSends")) {
+        if (app.ui.settings.getSettingValue("Image Filter.Actions.Click Sends")) {
             this.picked.add(s)
             this._send_response()
         } else {

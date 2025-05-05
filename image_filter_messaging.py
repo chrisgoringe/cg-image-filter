@@ -85,9 +85,9 @@ def wait_for_response(secs, uid, unique) -> Response:
             time.sleep(0.2)
         if MessageState.waiting():
             PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "uid": uid, "unique":unique})
-        if MessageState.cancelled():
+        elif MessageState.cancelled():
             raise InterruptProcessingException()
-        if str(MessageState.latest.unique)!=str(unique):
+        elif str(MessageState.latest.unique)!=str(unique):
             print("Mismatched uniques...")
         return MessageState.get_response()
     finally: MessageState.stop_waiting()
