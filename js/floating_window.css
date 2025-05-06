@@ -21,6 +21,10 @@
     font-size:larger;
 }
 
+.tiny .cgfloat_header {
+    font-size: smaller;
+}
+
 .cgfloat_body {
     min-width: fit-content;
     display:flex;
@@ -78,5 +82,13 @@
 /* Text Edit */
 .cgfloat_body .row.text_edit {
     margin: 4px;
+}
+
+.cgfloat .tiny_image {
+    padding: 1px;
+    width: auto;
+    max-height: 100px;
+    object-fit: contain;
+    pointer-events: none;
 }
 

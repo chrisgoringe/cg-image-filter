@@ -1,6 +1,6 @@
 
 export class FloatingWindow extends HTMLDivElement {
-    constructor(title, x, y) {
+    constructor(title, x, y, parent) {
         super()
         this.classList.add('cgfloat')
         this.header = document.createElement('div')
@@ -18,6 +18,9 @@ export class FloatingWindow extends HTMLDivElement {
         
         this.dragging = false
         this.move_to(x,y)
+
+        if (parent) parent.append(this)
+        else document.body.append(this)
     }
 
     show() { this.style.display = 'block' }

@@ -49,12 +49,12 @@ class Popup extends HTMLSpanElement {
         this.zoomed_next_arrow.addEventListener('click', this.zoom_next.bind(this))
         this.zoomed_image.addEventListener('click', this.click_zoomed.bind(this))
 
-        this.tiny_window        = create('span', 'tiny_window hidden', document.body)
-        this.tiny_image         = create('img', 'tiny_image', this.tiny_window)
+        this.tiny_window = new FloatingWindow('', 100, 100)
+        this.tiny_window.classList.add('tiny')
+        this.tiny_image         = create('img', 'tiny_image', this.tiny_window.body)
         this.tiny_window.addEventListener('click', this.handle_deferred_message.bind(this))
 
         this.floating_window = new FloatingWindow('', 100, 100)
-        document.body.append(this.floating_window)
 
         this.counter_row          = create('span', 'counter row', this.floating_window.body)
         this.counter_reset_button = create('button', 'counter_reset', this.counter_row, {innerText:"Reset"} )
@@ -203,65 +203,51 @@ class Popup extends HTMLSpanElement {
         return (app.ui.settings.getSettingValue("ImageFilter.Actions.AutosendIdentical") && this.allsame)
     }
 
-    _handle_message(message, use_saved) {
+    _handle_message(message, using_saved) {
+        const detail = message.detail
+        const uid = detail.uid
+        this.node = app.graph._nodes_by_id[uid]
 
-        const uid = message.detail.uid
-        const node = app.graph._nodes_by_id[uid]
+        if (!this.node) return console.log(`Message was for ${uid} which doesn't exist`)
+        if (this.node._ni_widget?.value != message.detail.unique) return console.log(`Message unique id wasn't mine`)
 
-        if (!node) {
-            console.log(`Message was for ${uid} which doesn't exist`)
+        if (detail.tick) {
+            this.counter_text.innerText = `${detail.tick}s`
+            if (this.state==State.INACTIVE) this.request_reset()
             return
         }
 
-        if  (node._ni_widget?.value != message.detail.unique) {
-            console.log(`Message unique id wasn't mine`)
-            return
+        if (detail.timeout) {
+            this.close()
+            return `Timeout` 
         }
 
-        this.node = node
+        if (this.handling_message) return `Ignoring message because we're already handling a message`
 
-        if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("Image Filter.UI.Small Window") && !use_saved && !this.autosend()) {
+        this.set_title(this.node.title ?? "Image Filter")
+        this.allsame = detail.allsame || false
+        if (detail.tip) this.tip_row.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>')
+        else this.tip_row.innerHTML = ""
+
+        if (this.state==State.INACTIVE && app.ui.settings.getSettingValue("Image Filter.UI.Small Window") && !using_saved && !this.autosend()) {
             this.state = State.TINY
             this.saved_message = message
             this.tiny_image.src = get_full_url(message.detail.urls[message.detail.urls.length-1])
             this.maybe_play_sound()
             return `Deferring message and showing small window`
         }
-        
-        //if ((Date.now()-this.last_response_sent < 500)) return `Ignoring message because we just responded`
-        if (this.handling_message && !detail.timeout) return `Ignoring message because we're already handling a message`
-        this.handling_message = true
 
         try {
-            const detail = message.detail
-
-            if (detail.tick) {
-                this.counter_text.innerText = `${detail.tick}s`
-                if (this.state==State.INACTIVE) this.request_reset()
-                return
-            }
-
-            if (detail.timeout) {
-                this.close()
-                return `Timeout` 
-            }
-
-            this.allsame = detail.allsame || false
+            this.handling_message = true
             this.n_extras = detail.extras ? message.detail.extras.length : 0 
-
             this.extras_row.innerHTML = ''
             for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras_row, {value:detail.extras[i]}) }
-
-            this.set_title(detail)
             
-            if (!use_saved && !this.autosend()) this.maybe_play_sound()
+            if (!using_saved && !this.autosend()) this.maybe_play_sound()
 
             if (detail.maskedit)   this.handle_maskedit(detail) 
             else if (detail.urls)  this.handle_urls(detail)
 
-            if (detail.tip) this.tip_row.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>')
-            else this.tip_row.innerHTML = ""
-            
         } finally { this.handling_message = false }  
     }
 
@@ -275,9 +261,9 @@ class Popup extends HTMLSpanElement {
         )
     }
 
-    set_title(detail) {
-        const title = app.graph._nodes_by_id[detail.uid]?.title ?? "Image Filter"
+    set_title(title) {
         this.floating_window.set_title(title)
+        this.tiny_window.set_title(title)
     }
 
     handle_maskedit(detail) {
