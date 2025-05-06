@@ -12,9 +12,18 @@ app.registerExtension({
 	name: "cg.image_filter",
     settings: [
         {
-            id: "Image Filter. Version",
-            name: "Version: 1.4.2",
-            type: () => {return document.createElement('span')},
+            id: "Image Filter. Image Filter",
+            name: "Version 1.5",
+            type: () => {
+                const x = document.createElement('span')
+                const a = document.createElement('a')
+                a.innerText = "Report issues or request features"
+                a.href = "https://github.com/chrisgoringe/cg-image-filter/issues"
+                a.target = "_blank"
+                a.style.paddingRight = "12px"
+                x.appendChild(a)
+                return x
+            },
         },
         {
             id: "Image Filter.UI.Play Sound",
