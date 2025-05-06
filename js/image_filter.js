@@ -35,6 +35,13 @@ app.registerExtension({
             defaultValue: false
         },
         {
+            id: "Image Filter.UI.Start Zoomed",
+            name: "Enter the Image Filter node with an image zoomed",
+            type: "combo",
+            options: [ {value:0, text:"No"}, {value:"1", text:"first"}, {value:"-1", text:"last"} ],
+            default: 0,
+        },
+        {
             id: "Image Filter.UI.Small Window",
             name: "Show a small popup instead of covering the screen",
             type: "boolean",
@@ -59,6 +66,8 @@ app.registerExtension({
             {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./filter.css", import.meta.url).href } )
         create('link', null, document.getElementsByTagName('HEAD')[0], 
             {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./floating_window.css", import.meta.url).href } )
+        create('link', null, document.getElementsByTagName('HEAD')[0], 
+            {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./zoomed.css", import.meta.url).href } )
         api.addEventListener("execution_interrupted", popup.send_cancel.bind(popup));
         api.addEventListener("cg-image-filter-images",popup.handle_message.bind(popup));
     },
