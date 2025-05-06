@@ -412,7 +412,7 @@ class Popup extends HTMLSpanElement {
         if (document.activeElement?.type=='text' || document.activeElement?.type=='textarea') {
             if (this.floating_window.contains(document.activeElement) || this.contains(document.activeElement)) return
         }
-        if (this.state!=State.IDLE && this.state!=State.TINY) {
+        if (this.state!=State.INACTIVE && this.state!=State.TINY) {
             this.eat_event(e)
         }
     }
@@ -420,6 +420,7 @@ class Popup extends HTMLSpanElement {
     on_key_down(e) {
         if (document.activeElement?.type=='text' || document.activeElement?.type=='textarea') {
             if (this.floating_window.contains(document.activeElement) || this.contains(document.activeElement)) return
+            if (this.state==State.INACTIVE && this.state==State.TINY) return
         }
         if (this.state==State.FILTER || this.state==State.TEXT) {
             if (e.key=='Enter') {
