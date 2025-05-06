@@ -5,11 +5,10 @@ import time, json
 from typing import Optional
 
 REQUEST_RESHOW = "-1"
-REQUEST_TIMER_RESET = "-2"
 CANCEL = "-3"
 WAITING_FOR_RESPONSE = "-9"
 
-SPECIALS = [REQUEST_RESHOW, REQUEST_TIMER_RESET, CANCEL, WAITING_FOR_RESPONSE]
+SPECIALS = [REQUEST_RESHOW, CANCEL, WAITING_FOR_RESPONSE]
 
 class Response:
     def __init__(self, selection:Optional[list[int]] = None, text:Optional[str] = None,
@@ -18,18 +17,17 @@ class Response:
         self.text = text
         self.masked_image = masked_image
         self.extras = extras
-        self.timeout = False
 
     def get_extras(self,defaults:list[str]) -> list[str]:
          return self.extras or defaults  
 
-class TimeoutResponse(Response):
-    def __init__(self):
-        super().__init__()
-        self.timeout = True
+class TimeoutResponse(Response): pass
+class CancelledResponse(Response): pass
+class RequestResponse(Response): pass
 
 class MessageState:
     latest = None
+    unique_expected = None
     def __init__(self, data:dict|str={}):
         if not isinstance(data,dict): data = json.loads(data)
         self.unique:str            = data.pop('unique', None)
@@ -40,11 +38,18 @@ class MessageState:
     def waiting_state(cls): return MessageState(data={'special':WAITING_FOR_RESPONSE})
 
     @classmethod
-    def start_waiting(cls): cls.latest = cls.waiting_state()
+    def request_state(cls): return MessageState(data={'special':REQUEST_RESHOW})
+
+    @classmethod
+    def start_waiting(cls, unique): 
+        cls.latest = cls.waiting_state()
+        cls.unique_expected = unique
 
     @classmethod
     def get_response(cls) -> Response:  
         if cls.waiting(): return TimeoutResponse()
+        if cls.latest.cancelled: return CancelledResponse()
+        if cls.latest.request: return RequestResponse()
         return cls.latest.response
 
     @classmethod
@@ -53,8 +58,11 @@ class MessageState:
     @classmethod
     def waiting(cls): return cls.latest.special == WAITING_FOR_RESPONSE
 
-    @classmethod
-    def cancelled(cls): return cls.latest.special == CANCEL
+    @property
+    def cancelled(self): return self.special == CANCEL
+
+    @property
+    def request(self): return self.special == REQUEST_RESHOW
 
     @property
     def real(self): return self.special is None
@@ -66,17 +74,18 @@ async def cg_image_filter_message(request):
     response = post.get("response")
     message  = MessageState(response)
 
-    if (MessageState.waiting()):
-        MessageState.latest = message
-    elif (message.real and not MessageState.cancelled()):
-        MessageState.latest = message
+    if str(MessageState.unique_expected)==str(message.unique):
+        if (MessageState.waiting()):
+            MessageState.latest = message
+        else:
+            print(f"Ignoring response {response} because not waiting for one")
     else:
-        print(f"Ignoring response {response}")
+        print(f"Ignoring mismatched response {response}")
 
     return web.json_response({})
 
 def wait_for_response(secs, uid, unique) -> Response:
-    MessageState.start_waiting()
+    MessageState.start_waiting(unique)
     try:
         end_time = time.monotonic() + secs
         while(time.monotonic() < end_time and MessageState.waiting()): 
@@ -85,20 +94,16 @@ def wait_for_response(secs, uid, unique) -> Response:
             time.sleep(0.2)
         if MessageState.waiting():
             PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "uid": uid, "unique":unique})
-        elif MessageState.cancelled():
-            raise InterruptProcessingException()
-        elif str(MessageState.latest.unique)!=str(unique):
-            print("Mismatched uniques...")
         return MessageState.get_response()
     finally: MessageState.stop_waiting()
     
 def send_and_wait(payload, timeout, uid, unique) -> Response:
     payload['uid'] = uid
     payload['unique'] = unique
-    PromptServer.instance.send_sync("cg-image-filter-images", payload)
-    return wait_for_response(timeout, uid, unique)
-        
 
-
-
-            
+    while True:
+        PromptServer.instance.send_sync("cg-image-filter-images", payload)
+        r = wait_for_response(timeout, uid, unique)
+        if isinstance(r,CancelledResponse): raise InterruptProcessingException()
+        if (not isinstance(r, RequestResponse)): return r
+      

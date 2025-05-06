@@ -34,6 +34,7 @@ app.registerExtension({
         {
             id: "Image Filter.Actions.Click Sends",
             name: "Clicking an image sends it",
+            tooltip: "Use if you always want to send exactly one image.",
             type: "boolean",
             defaultValue: false
         },
@@ -54,12 +55,13 @@ app.registerExtension({
             id: "Image Filter.UI.Small Window",
             name: "Show a small popup instead of covering the screen",
             type: "boolean",
-            tooltip: "click the small popup to activate it",
+            tooltip: "Click the small popup to activate it",
             defaultValue: false
         },
         {
             id: "Image Filter.Z.Detailed Logging",
             name: "Turn on detailed logging",
+            tooltip: "If you are asked to for debugging!",
             type: "boolean",
             defaultValue: false
         },

@@ -82,6 +82,7 @@ class Popup extends HTMLSpanElement {
         this.picked = new Set()
     
         document.addEventListener("keydown", this.on_key_down.bind(this))
+        document.addEventListener("keypress", this.on_key_press.bind(this))
 
         document.body.appendChild(this)
         this.last_response_sent = 0
@@ -407,25 +408,32 @@ class Popup extends HTMLSpanElement {
         e.preventDefault()
     }
 
-    on_key_down(e) {
+    on_key_press(e) {
+        if (document.activeElement?.type=='text' || document.activeElement?.type=='textarea') {
+            if (this.floating_window.contains(document.activeElement) || this.contains(document.activeElement)) return
+        }
+        if (this.state!=State.IDLE && this.state!=State.TINY) {
+            this.eat_event(e)
+        }
+    }
 
+    on_key_down(e) {
+        if (document.activeElement?.type=='text' || document.activeElement?.type=='textarea') {
+            if (this.floating_window.contains(document.activeElement) || this.contains(document.activeElement)) return
+        }
         if (this.state==State.FILTER || this.state==State.TEXT) {
-            if (document.activeElement?.type=='text' || document.activeElement?.type=='textarea') {
-                return
-            } else {
-                if (e.key=='Enter') {
-                    this.send_current_state()
-                    return this.eat_event(e)
-                }
-                if (e.key=='Escape') {
-                    this.send_cancel()
-                    return this.eat_event(e)
-                }
-                if (`${parseInt(e.key)}`==e.key) {
-                    this.select_unselect(parseInt(e.key))
-                    this.render()
-                    return this.eat_event(e)
-                }
+            if (e.key=='Enter') {
+                this.send_current_state()
+                return this.eat_event(e)
+            }
+            if (e.key=='Escape') {
+                this.send_cancel()
+                return this.eat_event(e)
+            }
+            if (`${parseInt(e.key)}`==e.key) {
+                this.select_unselect(parseInt(e.key))
+                this.render()
+                return this.eat_event(e)
             }
         }
 

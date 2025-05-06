@@ -5,7 +5,7 @@ from comfy.model_management import InterruptProcessingException
 import os
 import torch
 
-from .image_filter_messaging import send_and_wait, Response
+from .image_filter_messaging import send_and_wait, Response, TimeoutResponse
 
 HIDDEN = {
             "prompt": "PROMPT", 
@@ -66,7 +66,7 @@ class ImageFilter(PreviewImage):
 
             response:Response = send_and_wait(payload, timeout, uid, node_identifier)
 
-            if response.timeout:
+            if isinstance(response, TimeoutResponse):
                 if ontimeout=='send none':  images_to_return = []
                 if ontimeout=='send all':   images_to_return = [*range(len(images))]
                 if ontimeout=='send first': images_to_return = [0,]
@@ -75,7 +75,7 @@ class ImageFilter(PreviewImage):
                 e1, e2, e3 = response.get_extras([extra1, extra2, extra3])
                 images_to_return = response.selection
 
-        if len(images_to_return) == 0: raise InterruptProcessingException()
+        if images_to_return is None or len(images_to_return) == 0: raise InterruptProcessingException()
 
         if video_frames>1:
             images_to_return = [ key*video_frames + frm  for key in images_to_return for frm in range(video_frames)   ]
@@ -123,7 +123,7 @@ class TextImageFilterWithExtras(PreviewImage):
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
 
         response = send_and_wait(payload, timeout, uid, node_identifier)
-        if response.timeout:
+        if isinstance(response, TimeoutResponse):
             return (image, text, extra1, extra2, extra3)
 
         return (image, response.text, *response.get_extras([extra1, extra2, extra3])) 

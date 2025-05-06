@@ -15,9 +15,15 @@ There's an example workflow that illustrates all of them at the end.
 
 There are also some helper nodes.
 
-If you prefer trying a workflow to reading docs, use of the nodes is illustrated in this seahorse (drag the image into Comfy):
+If you prefer trying a workflow to reading docs, use of the nodes is illustrated in this blob (drag the image into Comfy):
 
-<img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/seahorse.png" alt="Seahorse" width="200" height="200">
+<img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
+
+## New in 1.5 ##
+
+- Floating window for extras and tips
+- Mask editor node now has option for text extras
+- Keyboard and mouse navigation in zoomed view
 
 ## New in 1.4 ##
 
@@ -34,17 +40,6 @@ Video previews!
 - pick_list to automatically select images in `Image Filter`
 - optional initial mask input to `Mask Image Filter`
 
-## New in 1.2 ##
-
-- Options have all moved to the main settings
-- New option to show a miniature window instead of taking over the screen - click on it to go into full screen mode
-- List of ints output from `Split String by Commas`
-
-## New in 1.1.6 ## 
-
-- `Pick from List` to allow you to select matching items from any list
-- `Batch from Image List` and `Image List from Batch` to work with image batches
-- hover mouse over image and press space to zoom, space again to close the zoom
 
 ## Examples of what you might do with them
 
@@ -60,11 +55,13 @@ Video previews!
 
 ![image](images/options.png)
 
-- `AutosendIdentical` In the ImageFilter node, if all images are identical (including if there is just one image) then send
+- `If all images are identical, autosend one` - in the ImageFilter node, if all images are identical (including if there is just one image) then send
 an image without user interaction. 
-- `ClickSends` In the ImageFilter node, clicking an image sends it instead of selecting it. Useful if you know you only ever want to send one image at most.
-- `PlaySound` Play a 'ding' sound when any of the filter nodes becomes active.
-- `SmallWindow` Instead of taking over the whole screen immediately, display a tiny version of the image in the top left. Click that image to go into the full screen mode.
+- `Clicking an image sends it` - In the ImageFilter node, clicking an image sends it instead of selecting it. Useful if you know you only ever want to send one image at most.
+- `Show a small popup instead of covering the screen` - instead of taking over the whole screen immediately, display a tiny version of the image in the top left. Click that image to go into the full screen mode. You can move the tiny image window around to where you want it by dragging the title bar.
+- `Enter the Image Filter node with an image zoomed` - instead of showing the grid of images, zoom in on one. Options are `first` or `last`
+- `Play sound when activating` - play a 'ding' sound when any of the filter nodes becomes active. You can change the sound by replacing the file `ding.mp3` in the `js` subfolder.
+- `Video Frames per Second` - when previewing vidoe(s), try to play them at this speed
 
 ---
 
@@ -72,10 +69,7 @@ an image without user interaction.
 
 In `Image Filter` and `Text Image Filter` (not `Mask Image Filter`)
 
-- `Space` when hovering over an image enlarges it. While enlarged:
-  - `Space` closes the zoom
-  - `ArrowLeft` and `ArrowRight` select the previous/next image
-  - `ArrowUp` clicks this image (select/deselect or send, depending on the value of `ClickSends`)
+- `Space` when hovering over an image enlarges it. See `Zoom` in the `Image Filter` section below.
 - `Escape` to click the cancel button
 - `Enter`to click the send button
 - digits `0`, `1`, etc. to click an image (zero-indexed) (select/deselect or send, depending on the value of `ClickSends`)
@@ -95,8 +89,8 @@ you want to progress:
 
 ![image](images/popup.png)
 
-Click the images that you want to keep (their border will turn green) and then click 'Send' (or press 's') to continue the workflow. 
-If you don't want to keep any of the images, click 'Cancel' (or press 'x') to terminate the workflow. 
+Click the images that you want to keep (their border will turn green) and then click 'Send' to continue the workflow. 
+If you don't want to keep any of the images, click 'Cancel' (or press 'escape') to terminate the workflow. 
 
 The node also has a timeout specified, and a countdown is shown on the left hand side. If you don't Send or Cancel before the timeout, 
 the node will either cancel or send all the images, depending on the option you have selected.
@@ -104,6 +98,19 @@ the node will either cancel or send all the images, depending on the option you 
 Here's a simple use: generate a batch of images and pick which ones you want to save:
 
 ![workflow](images/workflow.png)
+
+### Zoom
+
+If you hover over an image (it gets a red border) and press the space bar, it will zoom to fill the screen. 
+You can also use the `Enter the Image Filter node with an image zoomed` setting to start in this mode.
+
+While zoomed, you can navigate with keyboard or mouse:
+
+| |Mouse|Keyboard|Notes|
+|-|-|-|-|
+|Select/unselect/send|Click the zoomed image|`Arrow Up`|Will select/unselect the image, or send it if you have `Clicking an image sends it` turned on|
+|Previous/Next|Click the arrows to the left or right|`Arrow Left` `Arrow Right`|The image number is shown near the top right|
+|Unzoom| |`Space`|Back to the grid view|
 
 ### Optional inputs
 
@@ -228,9 +235,9 @@ This workflow:
 - inpaints
 - uses 'Image Filter' to choose which, if either, of the two images (before and after inpaint) to save
 
-The workflow is embedded in the seahorse in a bottle:
+The workflow is embedded in the blob in a bottle:
 
-<img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/seahorse.png" alt="Seahorse" width="200" height="200">
+<img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
 
 # Bugs, Ideas, and the future
 
