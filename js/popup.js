@@ -1,7 +1,7 @@
 import { app, ComfyApp } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js"
 
-import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save } from "./mask_utils.js";
+import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save, new_editor } from "./mask_utils.js";
 import { Log } from "./log.js";
 import { create } from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
@@ -113,7 +113,7 @@ class Popup extends HTMLSpanElement {
         this.visible(this.floating_window, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
         this.visible(this.button_row, state!=State.MASK)
         this.disabled(this.send_button, (state==State.FILTER || state==State.ZOOMED) && this.picked.size==0)
-        this.visible(this.mask_button_row, state==State.MASK)
+        this.visible(this.mask_button_row, state==State.MASK && new_editor())
         this.visible(this.extras_row, this.n_extras>0)
         this.visible(this.tip_row, this.tip_row.innerHTML.length>0)
         this.visible(this.text_edit, state==State.TEXT)
@@ -311,6 +311,7 @@ class Popup extends HTMLSpanElement {
             return
         }
 
+        this.autozoom_pending = false
         if (detail.text != null) {
             this.state = State.TEXT
             //this.text_edit.innerHTML = detail.text
@@ -318,7 +319,7 @@ class Popup extends HTMLSpanElement {
             if (detail.textareaheight) this.text_edit.style.height = `${detail.textareaheight}px`
         } else {
             if (this.state != State.FILTER && this.state != State.ZOOMED && app.ui.settings.getSettingValue("Image Filter.UI.Start Zoomed")!=0) {
-                setTimeout(this.zoom_auto.bind(this), 50)
+                this.autozoom_pending = true
             }
             this.state = State.FILTER
         }
@@ -382,9 +383,18 @@ class Popup extends HTMLSpanElement {
     }
 
     zoom_auto() {
-        this.state = State.ZOOMED
-        this.zoomed_image_holder = (app.ui.settings.getSettingValue("Image Filter.UI.Start Zoomed")==1) ? this.grid.firstChild : this.grid.lastChild
-        return this.show_zoomed()
+        this.autozoom_pending = false
+        if (app.ui.settings.getSettingValue("Image Filter.UI.Start Zoomed")==1) {
+            this.zoomed_image_holder = this.grid.firstChild 
+        } else if (app.ui.settings.getSettingValue("Image Filter.UI.Start Zoomed")==-1) {
+            this.zoomed_image_holder = this.grid.lastChild 
+        } else {
+            return
+        }
+        if (this.zoomed_image_holder.image_index>=0) {
+            this.state = State.ZOOMED
+            return this.show_zoomed()
+        } 
     }
     zoom_next() {
         this.zoomed_image_holder = this.zoomed_image_holder.nextSibling || this.zoomed_image_holder.parentNode.firstChild
@@ -529,6 +539,10 @@ class Popup extends HTMLSpanElement {
         })
 
         this.redraw()
+
+        if (this.autozoom_pending) {
+            this.zoom_auto()
+        }
     }
 
     redraw() {

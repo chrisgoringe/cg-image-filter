@@ -1,14 +1,11 @@
 import { app, ComfyApp } from "../../scripts/app.js";
 
+export function new_editor() {
+    return app.ui.settings.getSettingValue('Comfy.MaskEditor.UseNewEditor')
+}
 
 function get_mask_editor_element() {
-    if (document.getElementById('maskEditor')) {
-        return document.getElementById('maskEditor')
-    } else if (document.getElementById('maskCanvas') && document.getElementById('maskCanvas').parentElement) {
-        return document.getElementById('maskCanvas').parentElement
-    } else {
-        return null
-    }
+    return new_editor() ? document.getElementById('maskEditor') : document.getElementById('maskCanvas')?.parentElement
 }
 
 export function mask_editor_showing() {
@@ -38,9 +35,9 @@ export function mask_editor_listen_for_cancel(callback) {
 }
 
 export function press_maskeditor_save() {
-    get_mask_editor_save_button().click()
+    get_mask_editor_save_button()?.click()
 }
 
 export function press_maskeditor_cancel() {
-    get_mask_editor_cancel_button().click()
+    get_mask_editor_cancel_button()?.click()
 }
