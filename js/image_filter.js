@@ -4,6 +4,7 @@ import { api } from "../../scripts/api.js";
 import { create } from "./utils.js";
 import { popup } from "./popup.js";
 import { ComfyWidgets } from "../../scripts/widgets.js";
+import { FloatingWindow } from "./floating_window.js";
 
 const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
 
@@ -11,45 +12,73 @@ app.registerExtension({
 	name: "cg.image_filter",
     settings: [
         {
-            id: "ImageFilter.PlaySound",
+            id: "Image Filter. Image Filter",
+            name: "Version 1.5",
+            type: () => {
+                const x = document.createElement('span')
+                const a = document.createElement('a')
+                a.innerText = "Report issues or request features"
+                a.href = "https://github.com/chrisgoringe/cg-image-filter/issues"
+                a.target = "_blank"
+                a.style.paddingRight = "12px"
+                x.appendChild(a)
+                return x
+            },
+        },
+        {
+            id: "Image Filter.UI.Play Sound",
             name: "Play sound when activating",
             type: "boolean",
             defaultValue: true
         },
         {
-            id: "ImageFilter.ClickSends",
-            name: "In Image Filter clicking an image sends it",
+            id: "Image Filter.Actions.Click Sends",
+            name: "Clicking an image sends it",
+            tooltip: "Use if you always want to send exactly one image.",
             type: "boolean",
             defaultValue: false
         },
         {
-            id: "ImageFilter.AutosendIdentical",
-            name: "In Image Filter, if all images are identical, autosend one",
+            id: "Image Filter.Actions.Autosend Identical",
+            name: "If all images are identical, autosend one",
             type: "boolean",
             defaultValue: false
         },
         {
-            id: "ImageFilter.SmallWindow",
-            name: "Initially show a small popup instead of covering the screen",
+            id: "Image Filter.UI.Start Zoomed",
+            name: "Enter the Image Filter node with an image zoomed",
+            type: "combo",
+            options: [ {value:0, text:"No"}, {value:"1", text:"first"}, {value:"-1", text:"last"} ],
+            default: 0,
+        },
+        {
+            id: "Image Filter.UI.Small Window",
+            name: "Show a small popup instead of covering the screen",
             type: "boolean",
+            tooltip: "Click the small popup to activate it",
             defaultValue: false
         },
         {
-            id: "ImageFilter.DetailedLogging",
+            id: "Image Filter.Z.Detailed Logging",
             name: "Turn on detailed logging",
+            tooltip: "If you are asked to for debugging!",
             type: "boolean",
             defaultValue: false
         },
         {
-            id: "ImageFilter.FPS",
+            id: "Image Filter.Video.FPS",
             name: "Video Frames per Second",
             type: "int",
-            defaultValue: 1,
+            defaultValue: 5,
         }
     ],
     setup() {
         create('link', null, document.getElementsByTagName('HEAD')[0], 
             {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./filter.css", import.meta.url).href } )
+        create('link', null, document.getElementsByTagName('HEAD')[0], 
+            {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./floating_window.css", import.meta.url).href } )
+        create('link', null, document.getElementsByTagName('HEAD')[0], 
+            {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./zoomed.css", import.meta.url).href } )
         api.addEventListener("execution_interrupted", popup.send_cancel.bind(popup));
         api.addEventListener("cg-image-filter-images",popup.handle_message.bind(popup));
     },
@@ -84,5 +113,6 @@ app.registerExtension({
             }
         }
     },
+
 
 })

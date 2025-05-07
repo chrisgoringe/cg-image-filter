@@ -1,9 +1,10 @@
 import { app, ComfyApp } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js"
 
-import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor } from "./mask_utils.js";
+import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save } from "./mask_utils.js";
 import { Log } from "./log.js";
 import { create } from "./utils.js";
+import { FloatingWindow } from "./floating_window.js";
 
 //const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
 const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras",]
@@ -16,42 +17,14 @@ function get_full_url(url) {
     return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}&r=${Math.random()}`)
 }
 
-class State {
-    static INACTIVE = 0
-    static TINY = 1
-    static MASK = 2
-    static FILTER = 3
-    static TEXT = 4
-    static ZOOMED = 5
-
-    static visible(item, value) {
-        if (value) item.classList.remove('hidden')
-        else item.classList.add('hidden')
-    }
-    static highlighted(item, value) {
-        if (value) item.classList.add('highlighted')
-        else item.classList.remove('highlighted')
-    }
-
-    static render(popup) {
-        const state = popup.state
-        State.visible(popup, (state==State.FILTER || state==State.TEXT || state==State.ZOOMED))
-        State.visible(popup.tiny_window, state==State.TINY)
-        State.visible(popup.counter, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
-        State.visible(popup.zoomed, state==State.ZOOMED)
-        State.visible(popup.text_edit, state==State.TEXT)
-        State.visible(popup.send_button, true /*!app.ui.settings.getSettingValue("ImageFilter.ClickSends")*/)
-
-        if (state==State.ZOOMED) {
-            const img_index = popup.zoomed_image_holder.image_index
-            State.highlighted(popup.zoomed, popup.picked.has(`${img_index}`))
-            popup.zoomed_number.innerHTML = `${img_index+1}/${popup.n_images}`
-        }
-
-        if (state!=State.MASK) hide_mask_editor()
-    }
-}
-
+const State = Object.freeze({
+    INACTIVE    : 0,
+    TINY        : 1,
+    MASK        : 2,
+    FILTER      : 3,
+    TEXT        : 4,
+    ZOOMED      : 5,
+})
 
 class Popup extends HTMLSpanElement {
     constructor() {
@@ -62,146 +35,220 @@ class Popup extends HTMLSpanElement {
         
         this.grid               = create('span', 'grid', this)
         this.overlaygrid        = create('span', 'grid overlaygrid', this)
+        this.grid.addEventListener('click', this.on_click.bind(this))
+
         this.zoomed             = create('span', 'zoomed', this)
-        this.zoomed_image       = create('img', 'zoomed_image', this.zoomed)
-        this.zoomed_number      = create('span', 'zoomed_number', this.zoomed)
-        this.text_edit          = create('textarea', 'text_edit', this)
-        this.title_bar          = create('span', 'title', this)
-        this.buttons            = create('span', 'buttons', this)
-        this.checkboxes         = create('span', null, this.buttons)
+        this.zoomed_prev        = create('span', 'zoomed_prev', this.zoomed)
+        this.zoomed_prev_arrow  = create('span', 'zoomed_arrow', this.zoomed_prev, {innerHTML:"&#x21E6"})
+        this.zoomed_image       = create('img',  'zoomed_image', this.zoomed)
+        this.zoomed_next        = create('span', 'zoomed_next', this.zoomed)
+        this.zoomed_number      = create('span', 'zoomed_number', this.zoomed_next)
+        this.zoomed_next_arrow  = create('span', 'zoomed_arrow', this.zoomed_next, {innerHTML:"&#x21E8"})
 
-        this.send_button        = create('button', 'control', this.buttons, {innerText:"Send"} )
-        this.cancel_button      = create('button', 'control', this.buttons, {innerText:"Cancel"} )
-        this.extras             = create('span', 'extras', this.buttons)
-        this.tip                = create('span', 'tip', this.buttons)
+        this.zoomed_prev_arrow.addEventListener('click', this.zoom_prev.bind(this))
+        this.zoomed_next_arrow.addEventListener('click', this.zoom_next.bind(this))
+        this.zoomed_image.addEventListener('click', this.click_zoomed.bind(this))
 
-        this.tiny_window        = create('span', 'tiny_window hidden', document.body)
-        this.tiny_image         = create('img', 'tiny_image', this.tiny_window)
+        this.tiny_window = new FloatingWindow('', 100, 100)
+        this.tiny_window.classList.add('tiny')
+        this.tiny_image         = create('img', 'tiny_image', this.tiny_window.body)
         this.tiny_window.addEventListener('click', this.handle_deferred_message.bind(this))
 
-        this.counter            = create('span', 'cg_counter hidden', document.body)
-        this.counter_text       = create('span', 'counter_text', this.counter)
-        this.counter_reset_button = create('button', 'counter_reset', this.counter, {innerText:"Reset"} )
+        this.floating_window = new FloatingWindow('', 100, 100)
 
-        this.grid.addEventListener('click', this.on_click.bind(this))
+        this.counter_row          = create('span', 'counter row', this.floating_window.body)
+        this.counter_reset_button = create('button', 'counter_reset', this.counter_row, {innerText:"Reset"} )
+        this.counter_text         = create('span', 'counter_text', this.counter_row)
+        this.counter_reset_button.addEventListener('click', this.request_reset.bind(this) ) 
+
+        this.extras_row = create('span', 'extras row', this.floating_window.body)
+
+        this.tip_row = create('span', 'tip row', this.floating_window.body)
+
+        this.button_row    = create('span', 'buttons row', this.floating_window.body)
+        this.send_button   = create('button', 'control', this.button_row, {innerText:"Send"} )
+        this.cancel_button = create('button', 'control', this.button_row, {innerText:"Cancel"} )
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
-        this.counter_reset_button.addEventListener('click', this.request_reset.bind(this) )
 
+        this.mask_button_row    = create('span', 'buttons row', this.floating_window.body)
+        this.mask_send_button   = create('button', 'control', this.mask_button_row, {innerText:"Send"} )
+        this.mask_cancel_button = create('button', 'control', this.mask_button_row, {innerText:"Cancel"} )
+        this.mask_send_button.addEventListener(  'click', press_maskeditor_save )
+        this.mask_cancel_button.addEventListener('click', press_maskeditor_cancel )
+
+        this.text_edit = create('textarea', 'text_edit row', this.floating_window.body)
+
+        this.picked = new Set()
+    
         document.addEventListener("keydown", this.on_key_down.bind(this))
+        document.addEventListener("keypress", this.on_key_press.bind(this))
 
         document.body.appendChild(this)
         this.last_response_sent = 0
         this.state = State.INACTIVE
-        State.render(this)
+        this.render()
     }
 
-    _send_response(msg, special_message, keep_open) {
+    visible(item, value) {
+        if (value) item.classList.remove('hidden')
+        else item.classList.add('hidden')
+    }
+    disabled(item, value) {
+        item.disabled = value
+    }
+    highlighted(item, value) {
+        if (value) item.classList.add('highlighted')
+        else item.classList.remove('highlighted')
+    }
+
+    render() {
+        const state = this.state
+        this.visible(this, (state==State.FILTER || state==State.TEXT || state==State.ZOOMED))
+
+        this.visible(this.tiny_window, state==State.TINY)
+
+        this.visible(this.zoomed, state==State.ZOOMED)
+
+        this.visible(this.floating_window, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
+        this.visible(this.button_row, state!=State.MASK)
+        this.disabled(this.send_button, (state==State.FILTER || state==State.ZOOMED) && this.picked.size==0)
+        this.visible(this.mask_button_row, state==State.MASK)
+        this.visible(this.extras_row, this.n_extras>0)
+        this.visible(this.tip_row, this.tip_row.innerHTML.length>0)
+        this.visible(this.text_edit, state==State.TEXT)
+        
+        if (state==State.ZOOMED) {
+            const img_index = this.zoomed_image_holder.image_index
+            this.highlighted(this.zoomed, this.picked.has(`${img_index}`))
+            this.zoomed_number.innerHTML = `${img_index+1}/${this.n_images}`
+        }
+
+        if (state!=State.MASK) hide_mask_editor()
+    }
+
+    _send_response(msg={}, keep_open=false) {
+        /*
+        msg is a dict. Valid keys are:
+        *selection    (list[int])
+        *text         (string)
+         special      (int)
+         masked_image (string)
+        *extras       (list of strings)
+        *unique       (string)
+                (*) are added
+        */
         if (Date.now()-this.last_response_sent < 1000) {
             Log.message_out(msg, "(throttled)")
             return
         }
 
-        if (!special_message) {
-            Array.from(this.extras.children).forEach((e)=>{ msg = msg + "|||" + e.value })
+        msg.unique = `${this.node._ni_widget?.value}`
+
+        if (!msg.special) {
+            if (this.n_extras>0) {
+                msg.extras = []
+                Array.from(this.extras_row.children).forEach((e)=>{ msg.extras.push(e.value) })
+            }
+            if (this.state==State.FILTER || this.state==State.ZOOMED) msg.selection = Array.from(this.picked)
+            if (this.state==State.TEXT) msg.text = this.text_edit.value
+            
             this.last_response_sent = Date.now()
         }
 
         try {
             const body = new FormData();
-            msg = `${msg}!unique!${this.unique}`
-            body.append('response', msg);
+            body.append('response', JSON.stringify(msg));
             api.fetchApi("/cg-image-filter-message", { method: "POST", body, });
             Log.message_out(msg)
-        } catch (e) { Log.error(e) }
-        finally { if (!keep_open) this.close() }
+        } catch (e) { 
+            Log.error(e) 
+        } finally { 
+            if (!keep_open) this.close() 
+        }
 
     }
 
-    send_current_state() { this._send_response( (this.state == State.TEXT) ? this.text_edit.value : Array.from(this.picked).join() ) }
+    send_current_state() { 
+        if (this.state == State.TEXT) {
+            this._send_response()
+        } else {
+            this._send_response()
+        }
+    }
     
-    send_cancel() { this._send_response(CANCEL, true) }
+    send_cancel() { this._send_response({special:CANCEL}) }
 
-    request_reset() { this._send_response(REQUEST_RESHOW, true, true) }
+    request_reset() { this._send_response({special:REQUEST_RESHOW}, true) }
 
     close() { 
         this.state = State.INACTIVE
-        State.render(this)
+        this.render()
     }
 
-    maybe_play_sound() { if (app.ui.settings.getSettingValue("ImageFilter.PlaySound")) this.audio.play(); }
+    maybe_play_sound() { if (app.ui.settings.getSettingValue("Image Filter.UI.Play Sound")) this.audio.play(); }
 
     handle_message(message) { 
         Log.message_in(message)
         Log.log( this._handle_message(message, false) )
-        State.render(this)
+        this.render()
     }
 
     handle_deferred_message(e) {
         Log.message_in(this.saved_message, "(deferred)")
         Log.log( this._handle_message(this.saved_message, true) )
-        State.render(this)
+        this.render()
     }
 
     autosend() {
-        return (app.ui.settings.getSettingValue("ImageFilter.AutosendIdentical") && this.allsame)
+        return (app.ui.settings.getSettingValue("ImageFilter.Actions.AutosendIdentical") && this.allsame)
     }
 
-    _handle_message(message, use_saved) {
+    _handle_message(message, using_saved) {
+        const detail = message.detail
+        const uid = detail.uid
+        this.node = app.graph._nodes_by_id[uid]
 
-        const uid = message.detail.uid
-        const unique = message.detail.unique
-        const node = app.graph._nodes_by_id[uid]
+        if (!this.node) return console.log(`Message was for ${uid} which doesn't exist`)
+        if (this.node._ni_widget?.value != message.detail.unique) return console.log(`Message unique id wasn't mine`)
 
-        if (!node) {
-            console.log(`Message was for ${uid} which doesn't exist`)
+        if (detail.tick) {
+            this.counter_text.innerText = `${detail.tick}s`
+            if (this.state==State.INACTIVE) this.request_reset()
             return
         }
 
-        if  (node._ni_widget?.value != message.detail.unique) {
-            console.log(`Message unique id wasn't mine`)
-            return
+        if (detail.timeout) {
+            this.close()
+            return `Timeout` 
         }
 
-        this.node = node
+        if (this.handling_message) return `Ignoring message because we're already handling a message`
 
-        this.allsame = message.detail.allsame || false
+        this.set_title(this.node.title ?? "Image Filter")
+        this.allsame = detail.allsame || false
+        if (detail.tip) this.tip_row.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>')
+        else this.tip_row.innerHTML = ""
 
-        if (this.state==State.INACTIVE && message.detail.urls && app.ui.settings.getSettingValue("ImageFilter.SmallWindow") && !use_saved && !this.autosend()) {
+        if (this.state==State.INACTIVE && app.ui.settings.getSettingValue("Image Filter.UI.Small Window") && !using_saved && !this.autosend()) {
             this.state = State.TINY
             this.saved_message = message
             this.tiny_image.src = get_full_url(message.detail.urls[message.detail.urls.length-1])
             this.maybe_play_sound()
             return `Deferring message and showing small window`
         }
-        
-        //if ((Date.now()-this.last_response_sent < 500)) return `Ignoring message because we just responded`
-        if (this.handling_message && !detail.timeout) return `Ignoring message because we're already handling a message`
-        this.handling_message = true
 
         try {
-            const detail = message.detail
-
-            if (detail.tick) {
-                this.counter_text.innerText = `${detail.tick}s`
-                if (this.state==State.INACTIVE) this.request_reset()
-                return
-            }
-
-            if (detail.timeout) {
-                this.close()
-                return `Timeout`
-            }
-
+            this.handling_message = true
+            this.n_extras = detail.extras ? message.detail.extras.length : 0 
+            this.extras_row.innerHTML = ''
+            for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras_row, {value:detail.extras[i]}) }
             
-            if (!use_saved && !this.autosend()) this.maybe_play_sound()
+            if (!using_saved && !this.autosend()) this.maybe_play_sound()
 
             if (detail.maskedit)   this.handle_maskedit(detail) 
             else if (detail.urls)  this.handle_urls(detail)
 
-            if (detail.tip) this.tip.innerHTML = detail.tip.replace(/(?:\r\n|\r|\n)/g, '<br/>')
-            else this.tip.innerHTML = ""
-            
         } finally { this.handling_message = false }  
     }
 
@@ -213,6 +260,11 @@ class Popup extends HTMLSpanElement {
             (POPUP_NODES.includes(node.type) && this.classList.contains('hidden')) ||
             (MASK_NODES.includes(node.type) && !mask_editor_showing())
         )
+    }
+
+    set_title(title) {
+        this.floating_window.set_title(title)
+        this.tiny_window.set_title(title)
     }
 
     handle_maskedit(detail) {
@@ -234,26 +286,28 @@ class Popup extends HTMLSpanElement {
     wait_while_mask_editing() {
         if (!this.seen_editor && mask_editor_showing()) {
             mask_editor_listen_for_cancel( this.send_cancel.bind(this) )
+            this.render()
             this.seen_editor = true
         }
 
         if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
         } else {
-            this._send_response(this.node.imgs[0].src)
+            this._send_response({masked_image:this.extract_filename(this.node.imgs[0].src)})
         } 
     }
 
-    handle_urls(detail) {
-        this.n_extras = detail.extras ? detail.extras.length : 0
-        this.video_frames = detail.video_frames || 1
+    extract_filename(url_string) {
+        return (new URL(url_string)).searchParams.get('filename')
+    }
 
-        this.extras.innerHTML = ''
-        for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras, {value:detail.extras[i]}) }
+    handle_urls(detail) {
+        this.video_frames = detail.video_frames || 1
 
         // do this after the extras are set up so that we send the right extras
         if (this.autosend()) {
-            this._send_response("0")
+            this.picked.add(0)
+            this._send_response()
             return
         }
 
@@ -261,16 +315,18 @@ class Popup extends HTMLSpanElement {
             this.state = State.TEXT
             //this.text_edit.innerHTML = detail.text
             this.text_edit.value = detail.text
-            if (detail.textareaheight) document.getElementsByClassName('cg_popup')[0].style.setProperty('--text_area_height', `${detail.textareaheight}px`)
+            if (detail.textareaheight) this.text_edit.style.height = `${detail.textareaheight}px`
         } else {
+            if (this.state != State.FILTER && this.state != State.ZOOMED && app.ui.settings.getSettingValue("Image Filter.UI.Start Zoomed")!=0) {
+                setTimeout(this.zoom_auto.bind(this), 50)
+            }
             this.state = State.FILTER
         }
 
         this.n_images = detail.urls?.length
 
-        this.laidOut = false
-        this.title_bar.innerText = app.graph._nodes_by_id[detail.uid]?.title ?? "Image Filter"
-    
+        this.laidOut = -1
+
         this.picked = new Set()
         if (this.n_images==1) this.picked.add('0')
 
@@ -310,7 +366,7 @@ class Popup extends HTMLSpanElement {
         this.frame = (this.frame+1)%this.video_frames
         Array.from(this.grid.children).forEach((img)=>{img.src = img.frames[this.frame]})
 
-        const fps = app.ui.settings.getSettingValue("ImageFilter.FPS")
+        const fps = app.ui.settings.getSettingValue("Image Filter.Video.FPS")
         const delay = (fps>0) ? 1000/fps : 1000
         setTimeout(this.advance_videos.bind(this), delay)
     }
@@ -325,64 +381,91 @@ class Popup extends HTMLSpanElement {
         this.redraw()       
     }
 
-    on_key_down(e) {
-        var used_keypress = false;
+    zoom_auto() {
+        this.state = State.ZOOMED
+        this.zoomed_image_holder = (app.ui.settings.getSettingValue("Image Filter.UI.Start Zoomed")==1) ? this.grid.firstChild : this.grid.lastChild
+        return this.show_zoomed()
+    }
+    zoom_next() {
+        this.zoomed_image_holder = this.zoomed_image_holder.nextSibling || this.zoomed_image_holder.parentNode.firstChild
+        this.show_zoomed()   
+    } 
+    zoom_prev() {
+        this.zoomed_image_holder = this.zoomed_image_holder.previousSibling || this.zoomed_image_holder.parentNode.lastChild  
+        this.show_zoomed()     
+    }
+    click_zoomed() {
+        const fake_event = { target:this.zoomed_image_holder}
+        this.on_click(fake_event)
+        this.show_zoomed()   
+    }
+    show_zoomed() {
+        this.zoomed_image.src = this.zoomed_image_holder.src
+        return this.render() 
+    }
+    eat_event(e) {
+        e.stopPropagation()
+        e.preventDefault()
+    }
 
+    on_key_press(e) {
+        if (document.activeElement?.type=='text' || document.activeElement?.type=='textarea') {
+            if (this.floating_window.contains(document.activeElement) || this.contains(document.activeElement)) return
+        }
+        if (this.state!=State.INACTIVE && this.state!=State.TINY) {
+            this.eat_event(e)
+        }
+    }
+
+    on_key_down(e) {
+        if (document.activeElement?.type=='text' || document.activeElement?.type=='textarea') {
+            if (this.floating_window.contains(document.activeElement) || this.contains(document.activeElement)) return
+            if (this.state==State.INACTIVE && this.state==State.TINY) return
+        }
         if (this.state==State.FILTER || this.state==State.TEXT) {
-            if (document.activeElement?.type=='text' || document.activeElement?.type=='textarea') {
-                return
-                // don't capture keys when editing text
-            } else {
-                if (e.key=='Enter') {
-                    this.send_current_state()
-                    used_keypress = true
-                }
-                if (e.key=='Escape') {
-                    this.send_cancel()
-                    used_keypress = true
-                }
-                if (`${parseInt(e.key)}`==e.key) {
-                    this.select_unselect(parseInt(e.key))
-                    used_keypress = true
-                }
+            if (e.key=='Enter') {
+                this.send_current_state()
+                return this.eat_event(e)
+            }
+            if (e.key=='Escape') {
+                this.send_cancel()
+                return this.eat_event(e)
+            }
+            if (`${parseInt(e.key)}`==e.key) {
+                this.select_unselect(parseInt(e.key))
+                this.render()
+                return this.eat_event(e)
             }
         }
 
-        if (this.state==State.FILTER && !used_keypress) {
+        if (this.state==State.FILTER) {
             if (e.key==' ' && this.mouse_is_over) {
                 this.state = State.ZOOMED
                 this.zoomed_image_holder = this.mouse_is_over
-                this.on_mouse_out(this.mouse_is_over)
-                used_keypress = true
+                //this.on_mouse_out(this.mouse_is_over)
+                this.eat_event(e)
+                return this.show_zoomed()
             }
         }
         
-        if (this.state==State.ZOOMED && !used_keypress) {
+        if (this.state==State.ZOOMED) {
             if (e.key==' ') {
                 this.state = State.FILTER
                 this.zoomed_image_holder = null
-                used_keypress = true
+                this.eat_event(e)
+                return this.render() 
             } else if (e.key=='ArrowUp') {
-                const fake_event = { target:this.zoomed_image_holder}
-                this.on_click(fake_event)
+                this.click_zoomed()
+                return this.eat_event(e)
             } else if (e.key=='ArrowDown') {
                 // select or unselect    
             } else if (e.key=='ArrowRight') {
-                this.zoomed_image_holder = this.zoomed_image_holder.nextSibling || this.zoomed_image_holder.parentNode.firstChild
-                used_keypress = true     
+                this.zoom_next()
+                return this.eat_event(e)   
             } else if (e.key=='ArrowLeft') {
-                this.zoomed_image_holder = this.zoomed_image_holder.previousSibling || this.zoomed_image_holder.parentNode.lastChild
-                used_keypress = true         
+                this.zoom_prev()
+                return this.eat_event(e)        
             }
-        }
-
-
-
-        if (used_keypress) {
-            e.stopPropagation()
-            e.preventDefault()
-            if (this.zoomed_image_holder) this.zoomed_image.src = this.zoomed_image_holder.src
-            State.render(this) 
         }
     }
 
@@ -391,8 +474,9 @@ class Popup extends HTMLSpanElement {
             return
         }
         const s = `${n}`
-        if (app.ui.settings.getSettingValue("ImageFilter.ClickSends")) {
-            this._send_response(s)
+        if (app.ui.settings.getSettingValue("Image Filter.Actions.Click Sends")) {
+            this.picked.add(s)
+            this._send_response()
         } else {
             if (this.picked.has(s)) this.picked.delete(s)
             else this.picked.add(s)
@@ -407,11 +491,12 @@ class Popup extends HTMLSpanElement {
     }
 
     layout() {
-        if (this.laidOut) return
+        const box = this.grid.getBoundingClientRect()
+        if (this.laidOut==box.width) return
 
         const im_w = this.grid.firstChild.naturalWidth
         const im_h = this.grid.firstChild.naturalHeight
-        const box = this.grid.getBoundingClientRect()
+        
         var per_row
         if (!im_w || !im_h || !box.width || !box.height) {
             setTimeout(this.layout.bind(this), 100)
@@ -428,7 +513,7 @@ class Popup extends HTMLSpanElement {
                 }
             }
             per_row = best_pick
-            this.laidOut = true
+            this.laidOut = box.width
         }
 
         const rows = Math.ceil(this.n_images/per_row)    
