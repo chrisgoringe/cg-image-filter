@@ -91,7 +91,7 @@ def wait_for_response(secs, uid, unique) -> Response:
         while(time.monotonic() < end_time and MessageState.waiting()): 
             throw_exception_if_processing_interrupted()
             PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic()), "uid": uid, "unique":unique})
-            time.sleep(0.2)
+            time.sleep(0.5)
         if MessageState.waiting():
             PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "uid": uid, "unique":unique})
         return MessageState.get_response()
