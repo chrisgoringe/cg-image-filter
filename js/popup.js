@@ -143,7 +143,13 @@ class Popup extends HTMLSpanElement {
             return
         }
 
-        msg.unique = `${this.node._ni_widget?.value}`
+        const unique = this.node?._ni_widget?.value
+        if (!unique) {
+            if (this.node) Log.error(`Node ${this.node.id} has no _ni_widget when trying to send ${msg}`)
+            else Log.error(`No node when trying to send ${msg}`)
+            return
+        }
+        msg.unique = `${unique}`
 
         if (!msg.special) {
             if (this.n_extras>0) {
