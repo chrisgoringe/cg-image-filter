@@ -82,7 +82,7 @@ class ImageFilter(PreviewImage):
 
         images = torch.stack(list(images[int(i)] for i in images_to_return))
         latents = {"samples": torch.stack(list(latents['samples'][int(i)] for i in images_to_return))} if latents is not None else None
-        masks = torch.stack(list(masks[i] for i in images_to_return)) if masks is not None else None
+        masks = torch.stack(list(masks[int(i)] for i in images_to_return)) if masks is not None else None
                 
         return (images, latents, masks, e1, e2, e3, ",".join(str(x) for x in images_to_return))
     
