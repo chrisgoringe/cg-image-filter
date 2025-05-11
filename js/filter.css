@@ -75,3 +75,7 @@
 .cg_popup .hidden {
     display: none !important;
 }
+
+.cgfloat .hidden {
+    display: none !important;
+}
