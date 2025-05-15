@@ -506,7 +506,7 @@ class Popup extends HTMLSpanElement {
         }
     }
 
-    layout() {
+    layout(norepeat) {
         const box = this.grid.getBoundingClientRect()
         if (this.laidOut==box.width) return
 
@@ -515,7 +515,7 @@ class Popup extends HTMLSpanElement {
         
         var per_row
         if (!im_w || !im_h || !box.width || !box.height) {
-            setTimeout(this.layout.bind(this), 100)
+            if (!norepeat) setTimeout(this.layout.bind(this), 100, [true,])
             return
         } else {
             var best_scale = 0
