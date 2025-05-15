@@ -8,6 +8,7 @@
 from .image_filter import ImageFilter, MaskImageFilter, TextImageFilterWithExtras
 from .list_utility_nodes import PickFromList, BatchFromImageList, ImageListFromBatch
 from .string_utility_nodes import SplitByCommas, StringToFloat, StringToInt
+from .mask_utility_nodes import MaskedSection
 
 VERSION = "1.5.2"
 WEB_DIRECTORY = "./js"
@@ -23,6 +24,7 @@ NODE_CLASS_MAPPINGS= {
     "Pick from List": PickFromList,
     "Batch from Image List": BatchFromImageList,
     "Image List From Batch": ImageListFromBatch,
+    "Masked Section": MaskedSection,
 }
 
 __all__ = ["NODE_CLASS_MAPPINGS", "WEB_DIRECTORY"]
