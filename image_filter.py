@@ -37,6 +37,7 @@ class ImageFilter(PreviewImage):
                 "extra1" : ("STRING", {"default":""}),
                 "extra2" : ("STRING", {"default":""}),
                 "extra3" : ("STRING", {"default":""}),
+                "pick_list_start" : ("INT", {"default":0, "tooltip":"The number used in pick_list for the first image"}),
                 "pick_list" : ("STRING", {"default":"", "tooltip":"If a comma separated list of integers is provided, the images with these indices will be selected automatically."}),
                 "video_frames" : ("INT", {"default":1, "min":1, "tooltip": "treat each block of n images as a video"}),
             },
@@ -47,7 +48,7 @@ class ImageFilter(PreviewImage):
     def IS_CHANGED(cls, pick_list, **kwargs):
         return pick_list or float("NaN")
     
-    def func(self, images, timeout, ontimeout, uid, node_identifier, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list:str="", video_frames:int=1, **kwargs):
+    def func(self, images, timeout, ontimeout, uid, node_identifier, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list_start:int=0, pick_list:str="", video_frames:int=1, **kwargs):
         e1, e2, e3 = extra1, extra2, extra3
         B = images.shape[0]
 
@@ -84,7 +85,7 @@ class ImageFilter(PreviewImage):
         latents = {"samples": torch.stack(list(latents['samples'][int(i)] for i in images_to_return))} if latents is not None else None
         masks = torch.stack(list(masks[int(i)] for i in images_to_return)) if masks is not None else None
                 
-        return (images, latents, masks, e1, e2, e3, ",".join(str(x) for x in images_to_return))
+        return (images, latents, masks, e1, e2, e3, ",".join(str(x+pick_list_start) for x in images_to_return))
     
 class TextImageFilterWithExtras(PreviewImage):
     RETURN_TYPES = ("IMAGE","STRING","STRING","STRING","STRING")
