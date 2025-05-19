@@ -85,7 +85,7 @@ class ImageFilter(PreviewImage):
         latents = {"samples": torch.stack(list(latents['samples'][int(i)] for i in images_to_return))} if latents is not None else None
         masks = torch.stack(list(masks[int(i)] for i in images_to_return)) if masks is not None else None
                 
-        return (images, latents, masks, e1, e2, e3, ",".join(str(x+pick_list_start) for x in images_to_return))
+        return (images, latents, masks, e1, e2, e3, ",".join(str(int(x)+int(pick_list_start)) for x in images_to_return))
     
 class TextImageFilterWithExtras(PreviewImage):
     RETURN_TYPES = ("IMAGE","STRING","STRING","STRING","STRING")
