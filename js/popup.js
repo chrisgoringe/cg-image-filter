@@ -13,6 +13,8 @@ const MASK_NODES = ["Mask Image Filter",]
 const REQUEST_RESHOW = "-1"
 const CANCEL = "-3"
 
+const GRID_IMAGE_SPACE = 10
+
 function get_full_url(url) {
     return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}&r=${Math.random()}`)
 }
@@ -513,13 +515,13 @@ class Popup extends HTMLSpanElement {
         const im_w = this.grid.firstChild.naturalWidth
         const im_h = this.grid.firstChild.naturalHeight
         
-        var per_row
         if (!im_w || !im_h || !box.width || !box.height) {
             if (!norepeat) setTimeout(this.layout.bind(this), 100, [true,])
             return
         } else {
             var best_scale = 0
             var best_pick
+            var per_row
             for (per_row=1; per_row<=this.n_images; per_row++) {
                 const rows = Math.ceil(this.n_images/per_row)
                 const scale = Math.min( box.width/(im_w*per_row), box.height/(im_h*rows) )
@@ -528,26 +530,54 @@ class Popup extends HTMLSpanElement {
                     best_pick = per_row
                 }
             }
-            per_row = best_pick
+            this.per_row = best_pick
             this.laidOut = box.width
         }
 
-        const rows = Math.ceil(this.n_images/per_row)    
+        this.rows = Math.ceil(this.n_images/this.per_row)    
+        const w = (box.width / this.per_row)-GRID_IMAGE_SPACE
+        const h = (box.height / this.rows)-GRID_IMAGE_SPACE
+
+        var template_columns = ''
+        for (let i=0; i<this.per_row; i++) template_columns += ` ${w+GRID_IMAGE_SPACE}px`  
+        var template_rows = ''
+        for (let i=0; i<this.rows; i++) template_rows += ` ${h+GRID_IMAGE_SPACE}px`
+        this.grid.style.gridTemplateColumns = template_columns
+        this.grid.style.gridTemplateRows = template_rows
+        this.overlaygrid.style.gridTemplateColumns = template_columns
+        this.overlaygrid.style.gridTemplateRows = template_rows
+
         Array.from(this.grid.children).forEach((c,i)=>{
-            c.style.gridArea = `${Math.floor(i/per_row) + 1} / ${i%per_row + 1} /  auto / auto`; 
-            c.style.maxHeight = `${box.height / rows}px`
-            c.style.maxWidth = `${box.width / per_row}px`
+            c.style.gridArea = `${Math.floor(i/this.per_row) + 1} / ${i%this.per_row + 1} /  auto / auto`; 
         })
         Array.from(this.overlaygrid.children).forEach((c,i)=>{
-            c.style.gridArea = `${Math.floor(i/per_row) + 1} / ${i%per_row + 1} /  auto / auto`; 
-            c.style.maxHeight = `${box.height / rows}px`
-            c.style.maxWidth = `${box.width / per_row}px`
+            c.style.gridArea = `${Math.floor(i/this.per_row) + 1} / ${i%this.per_row + 1} /  auto / auto`; 
         })
 
         this.redraw()
+        setTimeout(this.rescale_images.bind(this), 100)
 
         if (this.autozoom_pending) {
             this.zoom_auto()
+        }
+    }
+
+    rescale_images() {
+        if (!app.ui.settings.getSettingValue("Image Filter.UI.Enlarge Small Images")) return
+        const box = this.grid.getBoundingClientRect()
+        const sub = this.grid.firstChild.getBoundingClientRect()
+        const w_used = (sub.width+GRID_IMAGE_SPACE)*this.per_row / box.width
+        const h_used = (sub.height+GRID_IMAGE_SPACE)*this.rows / box.height
+        const could_zoom = 1.0 / Math.max(w_used, h_used)
+        if (could_zoom>1.01) {
+            this.grid.style.transform = `scale(${could_zoom})`
+            this.grid.style.transformOrigin = "top left"
+            this.grid.style.justifyItems = "start"
+            this.grid.style.alignItems = "start"
+            this.overlaygrid.style.transform = `scale(${could_zoom})`
+            this.overlaygrid.style.transformOrigin = "top left"
+            this.overlaygrid.style.justifyItems = "start"
+            this.overlaygrid.style.alignItems = "start" 
         }
     }
 

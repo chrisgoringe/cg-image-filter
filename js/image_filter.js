@@ -32,6 +32,12 @@ app.registerExtension({
             defaultValue: true
         },
         {
+            id: "Image Filter.UI.Enlarge Small Images",
+            name: "Enlarge small images in grid",
+            type: "boolean",
+            defaultValue: true
+        },
+        {
             id: "Image Filter.Actions.Click Sends",
             name: "Clicking an image sends it",
             tooltip: "Use if you always want to send exactly one image.",

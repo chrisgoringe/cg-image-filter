@@ -4,7 +4,7 @@
     height:100%;
     background-color: rgba(0, 0, 0, 0.95);
     z-index: 100000;
-    --text_area_height: 150px;
+    --text_area_height: 0px;
 }
 
 .cg_popup .grid {
@@ -14,8 +14,8 @@
     height:calc(100% - 60px - var(--text_area_height));
     top:55px;
     display: grid;
-    align-content: space-evenly;
-    justify-content: space-evenly;
+    justify-items: center;
+    align-items: center;
 }
 
 .cg_popup .overlaygrid {
