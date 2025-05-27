@@ -207,7 +207,7 @@ class Popup extends HTMLSpanElement {
     }
 
     autosend() {
-        return (app.ui.settings.getSettingValue("ImageFilter.Actions.AutosendIdentical") && this.allsame)
+        return (app.ui.settings.getSettingValue("Image Filter.Actions.Autosend Identical") && this.allsame)
     }
 
     _handle_message(message, using_saved) {
@@ -312,9 +312,7 @@ class Popup extends HTMLSpanElement {
 
         // do this after the extras are set up so that we send the right extras
         if (this.autosend()) {
-            this.picked.add(0)
-            this._send_response()
-            return
+            return this._send_response({selection:[0,]})
         }
 
         this.autozoom_pending = false
