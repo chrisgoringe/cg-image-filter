@@ -561,21 +561,26 @@ class Popup extends HTMLSpanElement {
     }
 
     rescale_images() {
-        if (!app.ui.settings.getSettingValue("Image Filter.UI.Enlarge Small Images")) return
+        const justify = this.per_row > 1 ? "start" : "center"
+        const align = this.rows > 1 ? "start" : "center"
+        this.grid.style.justifyItems = justify
+        this.grid.style.alignItems = align
+        this.overlaygrid.style.justifyItems = justify
+        this.overlaygrid.style.alignItems = align
+
         const box = this.grid.getBoundingClientRect()
         const sub = this.grid.firstChild.getBoundingClientRect()
         const w_used = (sub.width+GRID_IMAGE_SPACE)*this.per_row / box.width
         const h_used = (sub.height+GRID_IMAGE_SPACE)*this.rows / box.height
         const could_zoom = 1.0 / Math.max(w_used, h_used)
-        if (could_zoom>1.01) {
+        if (could_zoom>1 && !app.ui.settings.getSettingValue("Image Filter.UI.Enlarge Small Images")) return
+        if (could_zoom>1.01 || could_zoom<0.99) {
             this.grid.style.transform = `scale(${could_zoom})`
             this.grid.style.transformOrigin = "top left"
-            this.grid.style.justifyItems = "start"
-            this.grid.style.alignItems = "start"
+
             this.overlaygrid.style.transform = `scale(${could_zoom})`
             this.overlaygrid.style.transformOrigin = "top left"
-            this.overlaygrid.style.justifyItems = "start"
-            this.overlaygrid.style.alignItems = "start" 
+
         }
     }
 
