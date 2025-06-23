@@ -19,6 +19,10 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
 
+## New in 1.6 ##
+
+- `Masked Section` node to crop images to just the masked area
+
 ## New in 1.5 ##
 
 - Floating window for extras and tips
@@ -191,6 +195,13 @@ If you use the optional 'tip' input, the contents will be displayed under the ex
 
 ## Helper Nodes
 
+### Masked Section
+
+`Masked Section` takes a mask and a (batch of) images and outputs the images cropped to the bounding box of the mask (with a minimum size). 
+Here's how you might use it to preview the parts of the image that were changed in img2img (also using `Pick from List` and `Image List from Batch` described below)
+
+![masked preview](images/maskedsection.png)
+
 ### String handling
 
 - `Split String by Commas` allows you to split a text string into up to five pieces, splitting on `,`, `|`, or `^`. It also strips whitespace, so that the strings can be easily parsed, especially by...
@@ -204,9 +215,17 @@ Together, these nodes allow you to specify lots of information in the `extras` f
 
 There is also a sixth output which is a list of all the strings.
 
-### Pick from List
+### List and Batch Handling
 
-The `Image Filter` node outputs a string, `indexes`, which is a comma separated list of the indexes (0 based) of the images selected. Connect this to a `Pick from List` node, and connect a list of anything to the `anything` input, and the `Pick from List` node will output a list corresponding to the selected images.
+**When working with multiple images** - `Image Filter` expects a batch, `Mask Image Filter` and `Text Image Filter` need a list.
+
+So if you generate a load of images using lists of, for instance, prompts, to feed them into `Image Filter` you will want to combine them with the helper node `Batch from Image List`.
+
+If you generate a batch of images and want to use the `Mask Image Filter` or `Text Image Filter`, which only handle a single image, you will want to do the opposite - convert the batch to a list with `Image List From Batch`. Then the images will be shown sequentially.
+
+The `Image Filter` node outputs a string, `indexes`, which is a comma separated list of the indexes 
+(0 based by default, but you can pick a different start value if you need to with `pick_list_start`) of the images selected. 
+Connect this to a `Pick from List` node, and connect a list of anything to the `anything` input, and the `Pick from List` node will output a list corresponding to the selected images.
 
 For instance, if you create a set of images using a list of prompts, this can be used to select the prompts that correspond to the selected images. But you might well want to batch the images if you did use lists - see below.
 
@@ -214,13 +233,7 @@ So something like this:
 
 ![image](images/fromlist.png)
 
----
 
-### Batch <-> List
-
-If you are using lists, each node will run once for each list. This means that normally you will want a single batch of images for the `Image Filter` (so if you generate a load of images using lists of, for instance, prompts, you will want to combine them with the helper node `Batch from Image List`)
-
-If you generate a batch of images and want to use the `Mask Image Filter` or `Text Image Filter`, which only show a single image, you will want to do the opposite - convert the batch to a list with `Image List From Batch`. Then the images will be shown sequentially.
 
 ---
 

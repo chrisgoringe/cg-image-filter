@@ -13,6 +13,8 @@ const MASK_NODES = ["Mask Image Filter",]
 const REQUEST_RESHOW = "-1"
 const CANCEL = "-3"
 
+const GRID_IMAGE_SPACE = 10
+
 function get_full_url(url) {
     return api.apiURL( `/view?filename=${encodeURIComponent(url.filename ?? v)}&type=${url.type ?? "input"}&subfolder=${url.subfolder ?? ""}&r=${Math.random()}`)
 }
@@ -49,12 +51,12 @@ class Popup extends HTMLSpanElement {
         this.zoomed_next_arrow.addEventListener('click', this.zoom_next.bind(this))
         this.zoomed_image.addEventListener('click', this.click_zoomed.bind(this))
 
-        this.tiny_window = new FloatingWindow('', 100, 100)
+        this.tiny_window = new FloatingWindow('', 100, 100, null, this.tiny_moved.bind(this))
         this.tiny_window.classList.add('tiny')
         this.tiny_image         = create('img', 'tiny_image', this.tiny_window.body)
         this.tiny_window.addEventListener('click', this.handle_deferred_message.bind(this))
 
-        this.floating_window = new FloatingWindow('', 100, 100)
+        this.floating_window = new FloatingWindow('', 100, 100, null, this.floater_moved.bind(this))
 
         this.counter_row          = create('span', 'counter row', this.floating_window.body)
         this.counter_reset_button = create('button', 'counter_reset', this.counter_row, {innerText:"Reset"} )
@@ -88,6 +90,26 @@ class Popup extends HTMLSpanElement {
         this.last_response_sent = 0
         this.state = State.INACTIVE
         this.render()
+    }
+
+    floater_moved(x,y) {
+        if (this.node?.properties) {
+            this.node.properties['filter_floater_xy'] = {x:x,y:y}
+        }
+    }
+
+    floater_position() {
+        return this.node?.properties?.['filter_floater_xy']
+    }
+
+    tiny_moved(x,y) {
+        if (this.node?.properties) {
+            this.node.properties['filter_tiny_xy'] = {x:x,y:y}
+        }
+    }
+
+    tiny_position() {
+        return this.node?.properties?.['filter_tiny_xy']
     }
 
     visible(item, value) {
@@ -270,6 +292,10 @@ class Popup extends HTMLSpanElement {
 
     set_title(title) {
         this.floating_window.set_title(title)
+        var pos = this.floater_position()
+        if (pos) this.floating_window.move_to(pos.x, pos.y)
+        pos = this.tiny_position()
+        if (pos) this.tiny_window.move_to(pos.x, pos.y)
         this.tiny_window.set_title(title)
     }
 
@@ -504,20 +530,20 @@ class Popup extends HTMLSpanElement {
         }
     }
 
-    layout() {
+    layout(norepeat) {
         const box = this.grid.getBoundingClientRect()
         if (this.laidOut==box.width) return
 
         const im_w = this.grid.firstChild.naturalWidth
         const im_h = this.grid.firstChild.naturalHeight
         
-        var per_row
         if (!im_w || !im_h || !box.width || !box.height) {
-            setTimeout(this.layout.bind(this), 100)
+            if (!norepeat) setTimeout(this.layout.bind(this), 100, [true,])
             return
         } else {
             var best_scale = 0
             var best_pick
+            var per_row
             for (per_row=1; per_row<=this.n_images; per_row++) {
                 const rows = Math.ceil(this.n_images/per_row)
                 const scale = Math.min( box.width/(im_w*per_row), box.height/(im_h*rows) )
@@ -526,27 +552,59 @@ class Popup extends HTMLSpanElement {
                     best_pick = per_row
                 }
             }
-            per_row = best_pick
+            this.per_row = best_pick
             this.laidOut = box.width
         }
 
-        const rows = Math.ceil(this.n_images/per_row)    
+        this.rows = Math.ceil(this.n_images/this.per_row)    
+        const w = (box.width / this.per_row)-GRID_IMAGE_SPACE
+        const h = (box.height / this.rows)-GRID_IMAGE_SPACE
+
+        var template_columns = ''
+        for (let i=0; i<this.per_row; i++) template_columns += ` ${w+GRID_IMAGE_SPACE}px`  
+        var template_rows = ''
+        for (let i=0; i<this.rows; i++) template_rows += ` ${h+GRID_IMAGE_SPACE}px`
+        this.grid.style.gridTemplateColumns = template_columns
+        this.grid.style.gridTemplateRows = template_rows
+        this.overlaygrid.style.gridTemplateColumns = template_columns
+        this.overlaygrid.style.gridTemplateRows = template_rows
+
         Array.from(this.grid.children).forEach((c,i)=>{
-            c.style.gridArea = `${Math.floor(i/per_row) + 1} / ${i%per_row + 1} /  auto / auto`; 
-            c.style.maxHeight = `${box.height / rows}px`
-            c.style.maxWidth = `${box.width / per_row}px`
+            c.style.gridArea = `${Math.floor(i/this.per_row) + 1} / ${i%this.per_row + 1} /  auto / auto`; 
         })
         Array.from(this.overlaygrid.children).forEach((c,i)=>{
-            c.style.gridArea = `${Math.floor(i/per_row) + 1} / ${i%per_row + 1} /  auto / auto`; 
-            c.style.maxHeight = `${box.height / rows}px`
-            c.style.maxWidth = `${box.width / per_row}px`
+            c.style.gridArea = `${Math.floor(i/this.per_row) + 1} / ${i%this.per_row + 1} /  auto / auto`; 
         })
 
         this.redraw()
+        setTimeout(this.rescale_images.bind(this), 100)
 
         if (this.autozoom_pending) {
             this.zoom_auto()
         }
+    }
+
+    rescale_images() {
+        /*const justify = /*this.per_row > 1 ? "start" : "center"
+        const align = /*this.rows > 1 ? "start" : "center"
+        this.grid.style.justifyItems = justify
+        this.grid.style.alignItems = align
+        this.overlaygrid.style.justifyItems = justify
+        this.overlaygrid.style.alignItems = align*/
+
+        const box = this.grid.getBoundingClientRect()
+        const sub = this.grid.firstChild.getBoundingClientRect()
+        const w_used = (sub.width+GRID_IMAGE_SPACE)*this.per_row / box.width
+        const h_used = (sub.height+GRID_IMAGE_SPACE)*this.rows / box.height
+        const could_zoom = 1.0 / Math.max(w_used, h_used)
+        if (could_zoom>1 && app.ui.settings.getSettingValue("Image Filter.UI.Enlarge Small Images")) {
+            Array.from(this.grid.children).forEach((img)=>{
+                img.style.width = `${sub.width*could_zoom}px`
+            })
+        }
+
+
+    
     }
 
     redraw() {

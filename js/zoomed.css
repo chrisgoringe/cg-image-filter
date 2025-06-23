@@ -35,7 +35,7 @@
 
 
 .cg_popup .zoomed_image {
-    /*max-width: 90%;*/
+    max-width: calc(100% - 140px);
     height: 100%;
     object-fit: contain;
     border: 1px solid white;

@@ -13,7 +13,7 @@ app.registerExtension({
     settings: [
         {
             id: "Image Filter. Image Filter",
-            name: "Version 1.5.3",
+            name: "Version 1.6",
             type: () => {
                 const x = document.createElement('span')
                 const a = document.createElement('a')
@@ -28,6 +28,12 @@ app.registerExtension({
         {
             id: "Image Filter.UI.Play Sound",
             name: "Play sound when activating",
+            type: "boolean",
+            defaultValue: true
+        },
+        {
+            id: "Image Filter.UI.Enlarge Small Images",
+            name: "Enlarge small images in grid",
             type: "boolean",
             defaultValue: true
         },
