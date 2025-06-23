@@ -51,12 +51,12 @@ class Popup extends HTMLSpanElement {
         this.zoomed_next_arrow.addEventListener('click', this.zoom_next.bind(this))
         this.zoomed_image.addEventListener('click', this.click_zoomed.bind(this))
 
-        this.tiny_window = new FloatingWindow('', 100, 100)
+        this.tiny_window = new FloatingWindow('', 100, 100, null, this.tiny_moved.bind(this))
         this.tiny_window.classList.add('tiny')
         this.tiny_image         = create('img', 'tiny_image', this.tiny_window.body)
         this.tiny_window.addEventListener('click', this.handle_deferred_message.bind(this))
 
-        this.floating_window = new FloatingWindow('', 100, 100)
+        this.floating_window = new FloatingWindow('', 100, 100, null, this.floater_moved.bind(this))
 
         this.counter_row          = create('span', 'counter row', this.floating_window.body)
         this.counter_reset_button = create('button', 'counter_reset', this.counter_row, {innerText:"Reset"} )
@@ -90,6 +90,26 @@ class Popup extends HTMLSpanElement {
         this.last_response_sent = 0
         this.state = State.INACTIVE
         this.render()
+    }
+
+    floater_moved(x,y) {
+        if (this.node?.properties) {
+            this.node.properties['filter_floater_xy'] = {x:x,y:y}
+        }
+    }
+
+    floater_position() {
+        return this.node?.properties?.['filter_floater_xy']
+    }
+
+    tiny_moved(x,y) {
+        if (this.node?.properties) {
+            this.node.properties['filter_tiny_xy'] = {x:x,y:y}
+        }
+    }
+
+    tiny_position() {
+        return this.node?.properties?.['filter_tiny_xy']
     }
 
     visible(item, value) {
@@ -272,6 +292,10 @@ class Popup extends HTMLSpanElement {
 
     set_title(title) {
         this.floating_window.set_title(title)
+        var pos = this.floater_position()
+        if (pos) this.floating_window.move_to(pos.x, pos.y)
+        pos = this.tiny_position()
+        if (pos) this.tiny_window.move_to(pos.x, pos.y)
         this.tiny_window.set_title(title)
     }
 
@@ -561,27 +585,26 @@ class Popup extends HTMLSpanElement {
     }
 
     rescale_images() {
-        const justify = this.per_row > 1 ? "start" : "center"
-        const align = this.rows > 1 ? "start" : "center"
+        /*const justify = /*this.per_row > 1 ? "start" : "center"
+        const align = /*this.rows > 1 ? "start" : "center"
         this.grid.style.justifyItems = justify
         this.grid.style.alignItems = align
         this.overlaygrid.style.justifyItems = justify
-        this.overlaygrid.style.alignItems = align
+        this.overlaygrid.style.alignItems = align*/
 
         const box = this.grid.getBoundingClientRect()
         const sub = this.grid.firstChild.getBoundingClientRect()
         const w_used = (sub.width+GRID_IMAGE_SPACE)*this.per_row / box.width
         const h_used = (sub.height+GRID_IMAGE_SPACE)*this.rows / box.height
         const could_zoom = 1.0 / Math.max(w_used, h_used)
-        if (could_zoom>1 && !app.ui.settings.getSettingValue("Image Filter.UI.Enlarge Small Images")) return
-        if (could_zoom>1.01 || could_zoom<0.99) {
-            this.grid.style.transform = `scale(${could_zoom})`
-            this.grid.style.transformOrigin = "top left"
-
-            this.overlaygrid.style.transform = `scale(${could_zoom})`
-            this.overlaygrid.style.transformOrigin = "top left"
-
+        if (could_zoom>1 && app.ui.settings.getSettingValue("Image Filter.UI.Enlarge Small Images")) {
+            Array.from(this.grid.children).forEach((img)=>{
+                img.style.width = `${sub.width*could_zoom}px`
+            })
         }
+
+
+    
     }
 
     redraw() {
