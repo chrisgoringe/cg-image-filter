@@ -240,11 +240,27 @@ class Popup extends HTMLSpanElement {
         if (tp) this.tiny_window.move_to(tp.x, tp.y, true)
     }
 
+    find_node(uid) {
+        const bits = uid.split(':')
+        if (bits.length==1) {
+            return app.graph._nodes_by_id[uid]
+        } else {
+            var graph = app.graph
+            var node
+            bits.forEach((bit)=>{
+                node = graph._nodes_by_id[bit]
+                graph = node.subgraph
+            })
+        }
+        return node
+    }
+
     _handle_message(message, using_saved) {
         const detail = message.detail
         const uid = detail.uid
+        const the_node = this.find_node(uid)
 
-        if (this.node!=app.graph._nodes_by_id[uid]) this.on_new_node(app.graph._nodes_by_id[uid])
+        if (this.node!=the_node) this.on_new_node(the_node)
 
         if (!this.node) return console.log(`Message was for ${uid} which doesn't exist`)
         if (this.node._ni_widget?.value != message.detail.unique) return console.log(`Message unique id wasn't mine`)
@@ -292,7 +308,7 @@ class Popup extends HTMLSpanElement {
 
 
     window_not_showing(uid) {
-        const node = app.graph._nodes_by_id[uid]
+        const node = this.find_node(uid)
         return (
             (POPUP_NODES.includes(node.type) && this.classList.contains('hidden')) ||
             (MASK_NODES.includes(node.type) && !mask_editor_showing())
@@ -311,7 +327,7 @@ class Popup extends HTMLSpanElement {
     handle_maskedit(detail) {
         this.state = State.MASK
 
-        this.node = app.graph._nodes_by_id[detail.uid]
+        //this.node = this.find_node(detail.uid)
         this.node.imgs = []
         detail.urls.forEach((url, i)=>{ 
             this.node.imgs.push( new Image() );
