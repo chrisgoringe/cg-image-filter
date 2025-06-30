@@ -232,10 +232,19 @@ class Popup extends HTMLSpanElement {
         return (app.ui.settings.getSettingValue("Image Filter.Actions.Autosend Identical") && this.allsame)
     }
 
+    on_new_node(nd) {
+        this.node = nd
+        const fp = this.floater_position()
+        if (fp) this.floating_window.move_to(fp.x, fp.y, true)
+        const tp = this.tiny_position()
+        if (tp) this.tiny_window.move_to(tp.x, tp.y, true)
+    }
+
     _handle_message(message, using_saved) {
         const detail = message.detail
         const uid = detail.uid
-        this.node = app.graph._nodes_by_id[uid]
+
+        if (this.node!=app.graph._nodes_by_id[uid]) this.on_new_node(app.graph._nodes_by_id[uid])
 
         if (!this.node) return console.log(`Message was for ${uid} which doesn't exist`)
         if (this.node._ni_widget?.value != message.detail.unique) return console.log(`Message unique id wasn't mine`)
