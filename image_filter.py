@@ -52,7 +52,7 @@ class ImageFilter(PreviewImage):
         e1, e2, e3 = extra1, extra2, extra3
         B = images.shape[0]
 
-        if video_frames>1000: video_frames=1
+        if video_frames>B: video_frames=1
             
 
         try:    images_to_return = [ int(x.strip())%B for x in pick_list.split(',') ] if pick_list else []

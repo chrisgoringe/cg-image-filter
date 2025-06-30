@@ -511,6 +511,20 @@ class Popup extends HTMLSpanElement {
                 this.eat_event(e)
                 return this.show_zoomed()
             }
+            if (e.key=='a' && e.ctrlKey) {
+                if (this.picked.size>this.n_images/2) {
+                    this.picked.clear()
+                    console.log('unselect all')
+                } else {
+                    this.picked.clear()
+                    for (var i=0; i<this.n_images; i++) {
+                        this.picked.add(`${i}`)
+                    }
+                    console.log('select all')
+                }
+                this.eat_event(e)
+                return this.redraw() 
+            }
         }
         
         if (this.state==State.ZOOMED) {
