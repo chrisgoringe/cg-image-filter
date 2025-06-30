@@ -13,7 +13,7 @@ app.registerExtension({
     settings: [
         {
             id: "Image Filter. Image Filter",
-            name: "Version 1.6",
+            name: "Version 1.6.1",
             type: () => {
                 const x = document.createElement('span')
                 const a = document.createElement('a')
