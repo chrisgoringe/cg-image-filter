@@ -78,6 +78,10 @@ In `Image Filter` and `Text Image Filter` (not `Mask Image Filter`)
 - `Enter`to click the send button
 - digits `0`, `1`, etc. to click an image (zero-indexed) (select/deselect or send, depending on the value of `ClickSends`)
 
+In `Image Filter` only
+
+- `ctrl-A` to select/unselect all images
+
 ---
 
 ## Image Filter
