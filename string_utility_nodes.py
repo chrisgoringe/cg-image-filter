@@ -1,3 +1,5 @@
+from comfy.comfy_types.node_typing import IO
+
 class SplitByCommas:
     RETURN_TYPES = ("STRING","STRING","STRING","STRING","STRING","STRING")
     FUNCTION = "func"
@@ -24,6 +26,25 @@ class SplitByCommas:
 
         bits.append(as_list)
         return tuple(bits)
+    
+class AnyListToString:
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "func"
+    CATEGORY = "image_filter/helpers"
+    INPUT_IS_LIST  = True
+    OUTPUT_IS_LIST = (False,) 
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": { 
+                "anything" : (IO.ANY, ), 
+                "join" : ("STRING", {"default":""}), 
+            }
+        }
+    
+    def func(self, anything, join:str):
+        return ( join[0].join( [f"{x}" for x in anything] ), )
     
 class StringToInt:
     RETURN_TYPES = ("INT",)
