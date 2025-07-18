@@ -640,9 +640,10 @@ class Popup extends HTMLSpanElement {
             Array.from(this.grid.children).forEach((img)=>{
                 img.style.width = `${sub.width*could_zoom}px`
             })
+            Array.from(this.overlaygrid.children).forEach((img)=>{
+                img.style.width = `${sub.width*could_zoom}px`
+            })
         }
-
-
     
     }
 
