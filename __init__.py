@@ -6,11 +6,11 @@
 """
 
 from .image_filter import ImageFilter, MaskImageFilter, TextImageFilterWithExtras
-from .list_utility_nodes import PickFromList, BatchFromImageList, ImageListFromBatch
-from .string_utility_nodes import SplitByCommas, StringToFloat, StringToInt
+from .list_utility_nodes import PickFromList, BatchFromImageList, ImageListFromBatch, StringListFromStrings
+from .string_utility_nodes import SplitByCommas, StringToFloat, StringToInt, AnyListToString
 from .mask_utility_nodes import MaskedSection
 
-VERSION = "1.6"
+VERSION = "1.6.1"
 WEB_DIRECTORY = "./js"
 
 NODE_CLASS_MAPPINGS= {
@@ -22,6 +22,8 @@ NODE_CLASS_MAPPINGS= {
     "String to Int": StringToInt,
     "String to Float": StringToFloat,
     "Pick from List": PickFromList,
+    "Any List to String": AnyListToString,
+    "String List from Strings": StringListFromStrings,
     "Batch from Image List": BatchFromImageList,
     "Image List From Batch": ImageListFromBatch,
     "Masked Section": MaskedSection,

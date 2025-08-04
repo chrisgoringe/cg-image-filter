@@ -52,7 +52,7 @@ class ImageFilter(PreviewImage):
         e1, e2, e3 = extra1, extra2, extra3
         B = images.shape[0]
 
-        if video_frames>1000: video_frames=1
+        if video_frames>B: video_frames=1
             
 
         try:    images_to_return = [ int(x.strip())%B for x in pick_list.split(',') ] if pick_list else []
@@ -69,9 +69,9 @@ class ImageFilter(PreviewImage):
 
             if isinstance(response, TimeoutResponse):
                 if ontimeout=='send none':  images_to_return = []
-                if ontimeout=='send all':   images_to_return = [*range(len(images))]
+                if ontimeout=='send all':   images_to_return = [*range(len(images)//video_frames)]
                 if ontimeout=='send first': images_to_return = [0,]
-                if ontimeout=='send last':  images_to_return = [len(images)//video_frames,]
+                if ontimeout=='send last':  images_to_return = [(len(images)//video_frames)-1,]
             else:
                 e1, e2, e3 = response.get_extras([extra1, extra2, extra3])
                 images_to_return = response.selection

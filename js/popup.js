@@ -232,10 +232,35 @@ class Popup extends HTMLSpanElement {
         return (app.ui.settings.getSettingValue("Image Filter.Actions.Autosend Identical") && this.allsame)
     }
 
+    on_new_node(nd) {
+        this.node = nd
+        const fp = this.floater_position()
+        if (fp) this.floating_window.move_to(fp.x, fp.y, true)
+        const tp = this.tiny_position()
+        if (tp) this.tiny_window.move_to(tp.x, tp.y, true)
+    }
+
+    find_node(uid) {
+        const bits = uid.split(':')
+        if (bits.length==1) {
+            return app.graph._nodes_by_id[uid]
+        } else {
+            var graph = app.graph
+            var node
+            bits.forEach((bit)=>{
+                node = graph._nodes_by_id[bit]
+                graph = node.subgraph
+            })
+        }
+        return node
+    }
+
     _handle_message(message, using_saved) {
         const detail = message.detail
         const uid = detail.uid
-        this.node = app.graph._nodes_by_id[uid]
+        const the_node = this.find_node(uid)
+
+        if (this.node!=the_node) this.on_new_node(the_node)
 
         if (!this.node) return console.log(`Message was for ${uid} which doesn't exist`)
         if (this.node._ni_widget?.value != message.detail.unique) return console.log(`Message unique id wasn't mine`)
@@ -283,7 +308,7 @@ class Popup extends HTMLSpanElement {
 
 
     window_not_showing(uid) {
-        const node = app.graph._nodes_by_id[uid]
+        const node = this.find_node(uid)
         return (
             (POPUP_NODES.includes(node.type) && this.classList.contains('hidden')) ||
             (MASK_NODES.includes(node.type) && !mask_editor_showing())
@@ -302,7 +327,7 @@ class Popup extends HTMLSpanElement {
     handle_maskedit(detail) {
         this.state = State.MASK
 
-        this.node = app.graph._nodes_by_id[detail.uid]
+        //this.node = this.find_node(detail.uid)
         this.node.imgs = []
         detail.urls.forEach((url, i)=>{ 
             this.node.imgs.push( new Image() );
@@ -486,6 +511,20 @@ class Popup extends HTMLSpanElement {
                 this.eat_event(e)
                 return this.show_zoomed()
             }
+            if (e.key=='a' && e.ctrlKey) {
+                if (this.picked.size>this.n_images/2) {
+                    this.picked.clear()
+                    console.log('unselect all')
+                } else {
+                    this.picked.clear()
+                    for (var i=0; i<this.n_images; i++) {
+                        this.picked.add(`${i}`)
+                    }
+                    console.log('select all')
+                }
+                this.eat_event(e)
+                return this.redraw() 
+            }
         }
         
         if (this.state==State.ZOOMED) {
@@ -601,9 +640,10 @@ class Popup extends HTMLSpanElement {
             Array.from(this.grid.children).forEach((img)=>{
                 img.style.width = `${sub.width*could_zoom}px`
             })
+            Array.from(this.overlaygrid.children).forEach((img)=>{
+                img.style.width = `${sub.width*could_zoom}px`
+            })
         }
-
-
     
     }
 

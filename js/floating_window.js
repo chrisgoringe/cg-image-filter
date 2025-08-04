@@ -29,11 +29,11 @@ export class FloatingWindow extends HTMLDivElement {
     hide() { this.style.display = 'none' }
     set_title(title) { this.header.innerText = title }
 
-    move_to(x,y) {
+    move_to(x,y,supress) {
         this.position = {x:x,y:y}
         this.style.left = `${this.position.x}px`
         this.style.top = `${this.position.y}px`
-        this.movecallback(x,y)
+        if (!supress) this.movecallback(x,y)
     }
 
     swallow(e) {
