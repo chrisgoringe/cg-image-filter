@@ -28,7 +28,7 @@ const State = Object.freeze({
     ZOOMED      : 5,
 })
 
-class Popup extends HTMLSpanElement {
+class Popup extends HTMLElement {
     constructor() {
         super()
         this.audio = new Audio('extensions/cg-image-filter/ding.mp3');
@@ -659,6 +659,6 @@ class Popup extends HTMLSpanElement {
 
 }
 
-customElements.define('cg-imgae-filter-popup', Popup, {extends: 'span'})
+customElements.define('cg-imgae-filter-popup', Popup)
 
 export const popup = new Popup()
