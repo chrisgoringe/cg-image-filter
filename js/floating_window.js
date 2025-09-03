@@ -1,5 +1,5 @@
 
-export class FloatingWindow extends HTMLDivElement {
+export class FloatingWindow extends HTMLElement {
     constructor(title, x, y, parent, movecallback) {
         super()
         this.movecallback = movecallback
@@ -59,4 +59,4 @@ export class FloatingWindow extends HTMLDivElement {
 
 
 }
-customElements.define('cg-floater',  FloatingWindow, {extends: 'div'})
+customElements.define('cg-floater',  FloatingWindow)
