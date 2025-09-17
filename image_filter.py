@@ -2,7 +2,7 @@
 
 from nodes import PreviewImage, LoadImage
 from comfy.model_management import InterruptProcessingException
-import os
+import os, random
 import torch
 
 from .image_filter_messaging import send_and_wait, Response, TimeoutResponse
@@ -23,7 +23,7 @@ class ImageFilter(PreviewImage):
     DESCRIPTION = "Allows you to preview images and choose which, if any to proceed with"
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": { 
                 "images" : ("IMAGE", ), 
@@ -54,8 +54,8 @@ class ImageFilter(PreviewImage):
 
         if video_frames>B: video_frames=1
             
-
-        try:    images_to_return = [ int(x.strip())%B for x in pick_list.split(',') ] if pick_list else []
+        try:    
+            images_to_return:list[int] = [ int(x.strip())%B for x in pick_list.split(',') ] if pick_list else []
         except Exception as e: 
             print(f"{e} parsing pick_list - will manually select")
             images_to_return = []
@@ -74,7 +74,7 @@ class ImageFilter(PreviewImage):
                 if ontimeout=='send last':  images_to_return = [(len(images)//video_frames)-1,]
             else:
                 e1, e2, e3 = response.get_extras([extra1, extra2, extra3])
-                images_to_return = response.selection
+                images_to_return = [ int(x) for x in response.selection ] if response.selection else []
 
         if images_to_return is None or len(images_to_return) == 0: raise InterruptProcessingException()
 
@@ -86,7 +86,7 @@ class ImageFilter(PreviewImage):
         masks = torch.stack(list(masks[int(i)] for i in images_to_return)) if masks is not None else None
 
         try: int(pick_list_start)
-        except: pick_list_start = '0'
+        except: pick_list_start = 0
                 
         return (images, latents, masks, e1, e2, e3, ",".join(str(int(x)+int(pick_list_start)) for x in images_to_return))
     
@@ -98,7 +98,7 @@ class TextImageFilterWithExtras(PreviewImage):
     OUTPUT_NODE = False
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": { 
                 "image" : ("IMAGE", ), 
@@ -143,7 +143,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
     OUTPUT_NODE = False
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": { 
                 "image" : ("IMAGE", ), 
@@ -161,11 +161,11 @@ class MaskImageFilter(PreviewImage, LoadImage):
         }
     
     @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        return float("NaN")
+    def IS_CHANGED(cls, *args, **kwargs):
+        return f"{random.random()}"
     
     @classmethod
-    def VALIDATE_INPUTS(cls, **kwargs): return True
+    def VALIDATE_INPUTS(cls, *args, **kwargs): return True
     
     def func(self, image, timeout, uid, if_no_mask, node_identifier, mask=None, extra1="", extra2="", extra3="", tip="", **kwargs):
         if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
