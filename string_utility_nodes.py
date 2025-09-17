@@ -10,22 +10,20 @@ class SplitByCommas:
     DESCRIPTION = "Split the input string into up to five pieces. Splits on commas (or | or ^) and then strips whitespace from front and end."
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": { "string" : ("STRING", {"default":""}), },
             "optional": { "split": ([",", "|", "^"], {}), },
         }
     
-    def func(self, string:str, split:str=","):
-        bits = [r.strip() for r in string.split(split)] 
-        as_list = [b for b in bits]
-        if len(bits)<=5: 
-            bits += ["",]*(5-len(bits))
-        else:
-            bits = bits[:4] + [",".join(bits[4:]),]
+    def func(self, string:str, split:str=",") -> tuple[str,str,str,str,str,list[str]]:
+        bits:list[str] = [r.strip() for r in string.split(split)] 
 
-        bits.append(as_list)
-        return tuple(bits)
+        while len(bits)<5: bits.append("")
+        if len(bits)>5: bits = bits[:4] + [",".join(bits[4:]),]
+
+        return (bits[0], bits[1], bits[2], bits[3], bits[4], bits)
+
     
 class AnyListToString:
     RETURN_TYPES = ("STRING",)
@@ -35,7 +33,7 @@ class AnyListToString:
     OUTPUT_IS_LIST = (False,) 
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": { 
                 "anything" : (IO.ANY, ), 
@@ -70,7 +68,7 @@ class StringToFloat:
     CATEGORY = "image_filter/helpers"
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": { 
                 "string" : ("STRING", {"default":"", "forceInput":True, "tooltip":"whitespace will be stripped before parsing"}), 

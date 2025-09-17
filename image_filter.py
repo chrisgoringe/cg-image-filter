@@ -173,7 +173,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
         else:
             saveable = image
 
-        urls:list[str] = self.save_images(images=saveable, **kwargs)['ui']['images']
+        urls:list[dict[str,str]] = self.save_images(images=saveable, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "maskedit":True, "extras":[extra1, extra2, extra3], "tip":tip}
         response = send_and_wait(payload, timeout, uid, node_identifier)
         

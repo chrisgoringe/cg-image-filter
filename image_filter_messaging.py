@@ -11,12 +11,12 @@ WAITING_FOR_RESPONSE = "-9"
 SPECIALS = [REQUEST_RESHOW, CANCEL, WAITING_FOR_RESPONSE]
 
 class Response:
-    def __init__(self, selection:Optional[list[int]] = None, text:Optional[str] = None,
+    def __init__(self, selection:Optional[list[str]] = None, text:Optional[str] = None,
                         masked_image:Optional[str] = None, extras:Optional[list[str]] = None):
-        self.selection = selection
-        self.text = text
-        self.masked_image = masked_image
-        self.extras = extras
+        self.selection:list[int]        = [int(x) for x in selection] if selection else []
+        self.text:Optional[str]         = text
+        self.masked_image:Optional[str] = masked_image
+        self.extras:Optional[list[str]] = extras
 
     def get_extras(self,defaults:list[str]) -> list[str]:
          return self.extras or defaults  
@@ -26,13 +26,23 @@ class CancelledResponse(Response): pass
 class RequestResponse(Response): pass
 
 class MessageState:
-    latest = None
+    _latest:'Optional[MessageState]' = None
     unique_expected = None
+
     def __init__(self, data:dict|str={}):
-        if not isinstance(data,dict): data = json.loads(data)
-        self.unique:str            = data.pop('unique', None)
-        self.special:Optional[int] = data.pop('special',None)
-        self.response:Response     = Response(**data)
+        data_dict:dict = data if isinstance(data,dict) else json.loads(data)
+        self.unique:str            = data_dict.pop('unique', None)
+        self.special:Optional[str] = data_dict.pop('special',None)
+        self.response:Response     = Response(**data_dict)
+
+    @classmethod
+    def latest(cls) -> 'MessageState': 
+        if cls._latest is None: cls._latest = cls()
+        return cls._latest 
+    
+    @classmethod
+    def set_latest(cls, latest:'MessageState'):
+        cls._latest = latest
 
     @classmethod
     def waiting_state(cls): return MessageState(data={'special':WAITING_FOR_RESPONSE})
@@ -42,30 +52,31 @@ class MessageState:
 
     @classmethod
     def start_waiting(cls, unique): 
-        cls.latest = cls.waiting_state()
+        cls._latest = cls.waiting_state()
         cls.unique_expected = unique
 
     @classmethod
     def get_response(cls) -> Response:  
         if cls.waiting(): return TimeoutResponse()
-        if cls.latest.cancelled: return CancelledResponse()
-        if cls.latest.request: return RequestResponse()
-        return cls.latest.response
+        if cls.latest().cancelled: return CancelledResponse()
+        if cls.latest().request: return RequestResponse()
+        return cls.latest().response
 
     @classmethod
-    def stop_waiting(cls): cls.latest = MessageState()
+    def stop_waiting(cls): 
+        cls._latest = MessageState()
 
     @classmethod
-    def waiting(cls): return cls.latest.special == WAITING_FOR_RESPONSE
+    def waiting(cls) -> bool: return cls.latest().special == WAITING_FOR_RESPONSE
 
     @property
-    def cancelled(self): return self.special == CANCEL
+    def cancelled(self) -> bool: return self.special == CANCEL
 
     @property
-    def request(self): return self.special == REQUEST_RESHOW
+    def request(self) -> bool: return self.special == REQUEST_RESHOW
 
     @property
-    def real(self): return self.special is None
+    def real(self) -> bool: return self.special is None
 
 
 @PromptServer.instance.routes.post('/cg-image-filter-message')
@@ -76,7 +87,7 @@ async def cg_image_filter_message(request):
 
     if str(MessageState.unique_expected)==str(message.unique):
         if (MessageState.waiting()):
-            MessageState.latest = message
+            MessageState.set_latest(message)
         else:
             print(f"Ignoring response {response} because not waiting for one")
     else:

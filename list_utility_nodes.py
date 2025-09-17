@@ -3,7 +3,7 @@ from comfy.comfy_types.node_typing import IO
     
 class BatchFromImageList:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {"required": { "images": ("IMAGE", ), } }
     INPUT_IS_LIST = True
     RETURN_TYPES = ("IMAGE", )
@@ -19,7 +19,7 @@ class BatchFromImageList:
         
 class ImageListFromBatch:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {"required": { "images": ("IMAGE", ), } }
     INPUT_IS_LIST = False
     OUTPUT_IS_LIST = [True,]
@@ -34,7 +34,7 @@ class ImageListFromBatch:
     
 class StringListFromStrings:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": { 
                 "s0": ("STRING", {"default":""}), 
@@ -62,7 +62,7 @@ class StringListFromStrings:
 
 class PickFromList:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": { 
                 "anything" : (IO.ANY, ), 
