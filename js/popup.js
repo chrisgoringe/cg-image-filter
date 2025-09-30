@@ -70,8 +70,10 @@ class Popup extends HTMLElement {
         this.button_row    = create('span', 'buttons row', this.floating_window.body)
         this.send_button   = create('button', 'control', this.button_row, {innerText:"Send"} )
         this.cancel_button = create('button', 'control', this.button_row, {innerText:"Cancel"} )
+        this.toggle_button = create('button', 'control', this.button_row, {innerText:"Hide"} )
         this.send_button.addEventListener(  'click', this.send_current_state.bind(this) )
         this.cancel_button.addEventListener('click', this.send_cancel.bind(this) )
+        this.toggle_button.addEventListener('click', this.toggleHide.bind(this))
 
         this.mask_button_row    = create('span', 'buttons row', this.floating_window.body)
         this.mask_send_button   = create('button', 'control', this.mask_button_row, {innerText:"Send"} )
@@ -89,6 +91,12 @@ class Popup extends HTMLElement {
         document.body.appendChild(this)
         this.last_response_sent = 0
         this.state = State.INACTIVE
+        this.hidden_by_toggle = false
+        this.render()
+    }
+
+    toggleHide() {
+        this.hidden_by_toggle = !this.hidden_by_toggle
         this.render()
     }
 
@@ -126,7 +134,7 @@ class Popup extends HTMLElement {
 
     render() {
         const state = this.state
-        this.visible(this, (state==State.FILTER || state==State.TEXT || state==State.ZOOMED))
+        this.visible(this, (state==State.FILTER || state==State.TEXT || state==State.ZOOMED) && !this.hidden_by_toggle)
 
         this.visible(this.tiny_window, state==State.TINY)
 
@@ -147,6 +155,9 @@ class Popup extends HTMLElement {
         }
 
         if (state!=State.MASK) hide_mask_editor()
+
+        this.toggle_button.innerText = this.hidden_by_toggle ? "Show" : "Hide"
+        this.visible(this.toggle_button, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT))
     }
 
     _send_response(msg={}, keep_open=false) {
