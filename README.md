@@ -19,6 +19,10 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
 
+## New in 1.6.4 ##
+
+- Small window now has a button that can be used to hide/show the main window, allowing you to view the workflow 
+
 ## New in 1.6 ##
 
 - `Masked Section` node to crop images to just the masked area
