@@ -1,5 +1,3 @@
-
-
 from nodes import PreviewImage, LoadImage
 from comfy.model_management import InterruptProcessingException
 import os, random
