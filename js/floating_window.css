@@ -5,6 +5,7 @@
     border: 1px solid black;
     background-color: rgba(95, 158, 160, 0.713);
     width: fit-content;
+    max-width: 450px;
 }
 
 .cgfloat.hidden {
