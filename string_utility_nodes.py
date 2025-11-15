@@ -13,7 +13,7 @@ class SplitByCommas:
     def INPUT_TYPES(cls):
         return {
             "required": { "string" : ("STRING", {"default":""}), },
-            "optional": { "split": ([",", "|", "^"], {}), },
+            "optional": { "split": ([",", "|", "^", ":", "-", "_"], {}), },
         }
     
     def func(self, string:str, split:str=",") -> tuple[str,str,str,str,str,list[str]]:
