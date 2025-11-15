@@ -424,6 +424,9 @@ class Popup extends HTMLElement {
             this.frame = 0
             setTimeout(this.advance_videos.bind(this), 1000)
         }
+
+        this.in_cooldown = true
+        setTimeout(()=>{this.in_cooldown = false}, 500)
         
     }
 
@@ -575,6 +578,7 @@ class Popup extends HTMLElement {
     }
 
     on_click(e) {
+        if (this.in_cooldown) return;
         if (e.target.image_index != undefined) {
             this.select_unselect(e.target.image_index)
         }
