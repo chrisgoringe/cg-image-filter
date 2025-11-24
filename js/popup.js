@@ -390,7 +390,7 @@ class Popup extends HTMLElement {
             this.state = State.FILTER
         }
 
-        this.n_images = detail.urls?.length
+        this.n_images = (this.video_frames<=1) ? detail.urls.length : Math.ceil(detail.urls.length / this.video_frames)
 
         this.laidOut = -1
 

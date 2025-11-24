@@ -10,7 +10,7 @@ from .list_utility_nodes import PickFromList, BatchFromImageList, ImageListFromB
 from .string_utility_nodes import SplitByCommas, StringToFloat, StringToInt, AnyListToString
 from .mask_utility_nodes import MaskedSection
 
-VERSION = "1.6.4"
+VERSION = "1.6.5"
 WEB_DIRECTORY = "./js"
 
 NODE_CLASS_MAPPINGS= {
