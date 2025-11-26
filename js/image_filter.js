@@ -4,7 +4,7 @@ import { api } from "../../scripts/api.js";
 import { create } from "./utils.js";
 import { popup } from "./popup.js";
 import { ComfyWidgets } from "../../scripts/widgets.js";
-import { FloatingWindow } from "./floating_window.js";
+import { unique_to_tab } from "./weak_map.js";
 
 const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
 
@@ -13,7 +13,7 @@ app.registerExtension({
     settings: [
         {
             id: "Image Filter. Image Filter",
-            name: "Version 1.6.5",
+            name: "Version 1.7",
             type: () => {
                 const x = document.createElement('span')
                 const a = document.createElement('a')
@@ -109,16 +109,30 @@ app.registerExtension({
             nodeType.prototype.onNodeCreated = function () {
                 this._ni_widget = this.widgets.find((n)=>n.name=='node_identifier')
                 if (!(this._ni_widget)) {
-                    this._ni_widget = ComfyWidgets["INT"](this, "node_identifier", ["INT", { "default":0 }], app).widget
+                    this._ni_widget = ComfyWidgets["STRING"](this, "node_identifier", ["STRING", { "default":"" }], app).widget
                 }
                 this._ni_widget.hidden = true
                 this._ni_widget.computeSize = () => [0,0]
-                this._ni_widget.value = Math.floor(Math.random() * 1000000)
+                
+                
 
                 return onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
             }
         }
     },
+
+    afterConfigureGraph() {
+        setTimeout( ()=> {
+            const checked = document.getElementsByClassName('p-togglebutton-checked')[0]
+            app.graph.nodes.forEach( (node)=> {
+                const unique_id_widget = node.widgets?.find((n)=>n.name=='node_identifier')
+                if (unique_id_widget) {
+                    unique_id_widget.value = `${node.graph.id}:${node.id}`
+                    unique_to_tab.set(unique_id_widget.value, checked )
+                }
+            })
+        }, 1000)
+    }
 
 
 })

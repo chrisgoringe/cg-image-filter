@@ -5,6 +5,7 @@ import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, p
 import { Log } from "./log.js";
 import { create } from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
+import { unique_to_tab } from "./weak_map.js";
 
 //const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
 const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras",]
@@ -272,9 +273,18 @@ class Popup extends HTMLElement {
         const the_node = this.find_node(uid)
 
         if (this.node!=the_node) this.on_new_node(the_node)
+        const tab = unique_to_tab.get(message.detail.unique)
 
-        if (!this.node) return console.log(`Message was for ${uid} which doesn't exist`)
-        if (this.node._ni_widget?.value != message.detail.unique) return console.log(`Message unique id wasn't mine`)
+        if (!this.node || this.node._ni_widget?.value != message.detail.unique) {
+            if (tab) {
+                if (!tab.innerHTML.endsWith('!&nbsp;')) tab.innerHTML += '!&nbsp;'
+            }
+            return console.log(`Message unique id wasn't mine`)
+        } else {
+            if (tab) {
+                if (tab.innerHTML.endsWith('!&nbsp;')) tab.innerHTML = tab.innerHTML.substring(0, tab.innerHTML.length-7)
+            }
+        }
 
         if (detail.tick) {
             this.counter_text.innerText = `${detail.tick}s`
