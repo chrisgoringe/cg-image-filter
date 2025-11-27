@@ -9,7 +9,7 @@ HIDDEN = {
             "prompt": "PROMPT", 
             "extra_pnginfo": "EXTRA_PNGINFO", 
             "uid":"UNIQUE_ID",
-            "node_identifier": "NID",
+            
         }
 
 class ImageFilter(PreviewImage):
@@ -38,6 +38,7 @@ class ImageFilter(PreviewImage):
                 "pick_list_start" : ("INT", {"default":0, "tooltip":"The number used in pick_list for the first image"}),
                 "pick_list" : ("STRING", {"default":"", "tooltip":"If a comma separated list of integers is provided, the images with these indices will be selected automatically."}),
                 "video_frames" : ("INT", {"default":1, "min":1, "tooltip": "treat each block of n images as a video"}),
+                "graph_id": ("STRING", {"default":""}),
             },
             "hidden": HIDDEN,
         }
@@ -46,7 +47,7 @@ class ImageFilter(PreviewImage):
     def IS_CHANGED(cls, pick_list, **kwargs):
         return pick_list or float("NaN")
     
-    def func(self, images, timeout, ontimeout, uid, node_identifier, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list_start:int=0, pick_list:str="", video_frames:int=1, **kwargs):
+    def func(self, images, timeout, ontimeout, uid, graph_id, tip="", extra1="", extra2="", extra3="", latents=None, masks=None, pick_list_start:int=0, pick_list:str="", video_frames:int=1, **kwargs):
         e1, e2, e3 = extra1, extra2, extra3
         B = images.shape[0]
 
@@ -63,7 +64,7 @@ class ImageFilter(PreviewImage):
             urls:list[str] = self.save_images(images=images, **kwargs)['ui']['images']
             payload = {"uid": uid, "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip, "video_frames":video_frames}
 
-            response:Response = send_and_wait(payload, timeout, uid, node_identifier)
+            response:Response = send_and_wait(payload, timeout, uid, graph_id)
 
             if isinstance(response, TimeoutResponse):
                 if ontimeout=='send none':  images_to_return = []
@@ -118,13 +119,13 @@ class TextImageFilterWithExtras(PreviewImage):
     def IS_CHANGED(cls, **kwargs):
         return float("NaN")
     
-    def func(self, image, text, timeout, uid, node_identifier, extra1="", extra2="", extra3="", mask=None, tip="", textareaheight=None, **kwargs):
+    def func(self, image, text, timeout, uid, graph_id, extra1="", extra2="", extra3="", mask=None, tip="", textareaheight=None, **kwargs):
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3], "tip":tip}
         if textareaheight is not None: payload['textareaheight'] = textareaheight
         if mask is not None: payload['mask_urls'] = self.save_images(images=mask_to_image(mask), **kwargs)['ui']['images']
 
-        response = send_and_wait(payload, timeout, uid, node_identifier)
+        response = send_and_wait(payload, timeout, uid, graph_id)
         if isinstance(response, TimeoutResponse):
             return (image, text, extra1, extra2, extra3)
 
@@ -165,7 +166,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
     @classmethod
     def VALIDATE_INPUTS(cls, *args, **kwargs): return True
     
-    def func(self, image, timeout, uid, if_no_mask, node_identifier, mask=None, extra1="", extra2="", extra3="", tip="", **kwargs):
+    def func(self, image, timeout, uid, if_no_mask, graph_id, mask=None, extra1="", extra2="", extra3="", tip="", **kwargs):
         if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
             saveable = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
         else:
@@ -173,7 +174,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
 
         urls:list[dict[str,str]] = self.save_images(images=saveable, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "maskedit":True, "extras":[extra1, extra2, extra3], "tip":tip}
-        response = send_and_wait(payload, timeout, uid, node_identifier)
+        response = send_and_wait(payload, timeout, uid, graph_id)
         
         if (response.masked_image):
             try:

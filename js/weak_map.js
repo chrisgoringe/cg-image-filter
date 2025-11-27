@@ -13,4 +13,4 @@ class WeakMap {
     }
 }
 
-export const unique_to_tab = new WeakMap()
+export const graph_id_to_tab = new WeakMap()

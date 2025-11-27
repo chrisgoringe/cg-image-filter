@@ -3,8 +3,8 @@ import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
 import { popup } from "./popup.js";
-import { ComfyWidgets } from "../../scripts/widgets.js";
-import { unique_to_tab } from "./weak_map.js";
+import { graph_id_to_tab } from "./weak_map.js";
+import { Log } from "./log.js";
 
 const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
 
@@ -107,32 +107,34 @@ app.registerExtension({
         if (FILTER_TYPES.includes(nodeType.comfyClass )) {
             const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
-                this._ni_widget = this.widgets.find((n)=>n.name=='node_identifier')
-                if (!(this._ni_widget)) {
-                    this._ni_widget = ComfyWidgets["STRING"](this, "node_identifier", ["STRING", { "default":"" }], app).widget
-                }
-                this._ni_widget.hidden = true
-                this._ni_widget.computeSize = () => [0,0]
-                
-                
-
+                set_graph_id_widget(this)
                 return onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
             }
         }
     },
 
     afterConfigureGraph() {
-        setTimeout( ()=> {
-            const checked = document.getElementsByClassName('p-togglebutton-checked')[0]
-            app.graph.nodes.forEach( (node)=> {
-                const unique_id_widget = node.widgets?.find((n)=>n.name=='node_identifier')
-                if (unique_id_widget) {
-                    unique_id_widget.value = `${node.graph.id}:${node.id}`
-                    unique_to_tab.set(unique_id_widget.value, checked )
-                }
-            })
-        }, 1000)
+        setTimeout( ()=> { app.graph.nodes.forEach( set_graph_id_widget ) }, 1000 )
+        link_to_tab(3)
     }
-
-
 })
+
+function set_graph_id_widget(node) {
+    const graph_id_widget = node.widgets?.find((n)=>n.name=='graph_id')
+    if (graph_id_widget) {
+        graph_id_widget.hidden = true
+        graph_id_widget.value = `${app.graph.id}`     // app.graph.id is unique per tab, regardless of subgraph
+        graph_id_widget.computeSize = () => [0,0]  
+    }
+}
+
+function link_to_tab(tries) {
+    const tab = document.getElementsByClassName('p-togglebutton-checked')[0]
+    if (tab && app.graph.id) {
+        graph_id_to_tab.set(app.graph.id, tab )
+    } else if (tries>0) {
+        setTimeout( ()=> { link_to_tab(tries-1) }, 500 )
+    } else {
+        Log.log(`cg-image-filter: could not link graph to tab`)
+    }
+}
