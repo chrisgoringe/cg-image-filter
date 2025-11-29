@@ -1,7 +1,7 @@
 import { app, ComfyApp } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js"
 
-import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save, new_editor } from "./mask_utils.js";
+import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save, new_editor, open_maskeditor } from "./mask_utils.js";
 import { Log } from "./log.js";
 import { create } from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
@@ -351,13 +351,14 @@ class Popup extends HTMLElement {
         } else {
             this.state = State.MASK
             this.node.imgs = []
+            this.node.images = []
             detail.urls.forEach((url, i)=>{ 
                 this.node.imgs.push( new Image() );
                 this.node.imgs[i].src = api.apiURL( `/view?filename=${encodeURIComponent(url.filename)}&type=${url.type}&subfolder=${url.subfolder}`) 
+                this.node.images.push( url )
             })
-            ComfyApp.copyToClipspace(this.node)
-            ComfyApp.clipspace_return_node = this.node
-            ComfyApp.open_maskeditor()
+            this.node.imageIndex = 0
+            open_maskeditor(this.node)
             this.seen_editor = false
         }
         setTimeout(this.wait_while_mask_editing.bind(this), 200)
@@ -373,7 +374,13 @@ class Popup extends HTMLElement {
         if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
         } else {
-            this._send_response({masked_image:this.extract_filename(this.node.imgs[0].src)})
+            const masked_image = this.extract_filename(this.node.imgs[0].src)
+            if (masked_image) {
+                this._send_response({masked_image:this.extract_filename(this.node.imgs[0].src)})
+            } else {
+                this._send_response({masked_data:this.node.imgs[0].src})
+            }
+            
         } 
     }
 

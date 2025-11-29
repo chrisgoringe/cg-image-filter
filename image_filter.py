@@ -3,6 +3,11 @@ from comfy.model_management import InterruptProcessingException
 import os, random
 import torch
 
+import base64
+import io
+from PIL import Image
+import numpy as np
+
 from .image_filter_messaging import send_and_wait, Response, TimeoutResponse
 
 HIDDEN = {
@@ -111,6 +116,7 @@ class TextImageFilterWithExtras(PreviewImage):
                 "extra2" : ("STRING", {"default":""}),
                 "extra3" : ("STRING", {"default":""}),
                 "textareaheight" : ("INT", {"default": 150, "min": 50, "max": 500, "tooltip": "Height of text area in pixels"}),
+                "graph_id": ("STRING", {"default":""}),
             },
             "hidden": HIDDEN,
         }
@@ -155,6 +161,7 @@ class MaskImageFilter(PreviewImage, LoadImage):
                 "extra1" : ("STRING", {"default":""}),
                 "extra2" : ("STRING", {"default":""}),
                 "extra3" : ("STRING", {"default":""}),
+                "graph_id": ("STRING", {"default":""}),
             },
             "hidden": HIDDEN,
         }
@@ -181,6 +188,19 @@ class MaskImageFilter(PreviewImage, LoadImage):
                 return ( *(self.load_image(os.path.join('clipspace', response.masked_image)+" [input]")), *response.get_extras([extra1, extra2, extra3]) ) 
             except FileNotFoundError:
                 pass
+        elif (response.masked_data):
+            data = response.masked_data.split(',',1)[-1]
+            bytes_data = data.encode('utf-8')
+            image_data = base64.decodebytes(bytes_data)
+            data_io = io.BytesIO(image_data)
+            img = Image.open(data_io)
+
+            mask = np.array(img.getchannel('A')).astype(np.float32) / 255.0
+            mask = 1. - torch.from_numpy(mask)
+            mask = mask.unsqueeze(0)
+
+            return ( image, mask, *response.get_extras([extra1, extra2, extra3]) )
+
 
         if if_no_mask == 'cancel': 
             raise InterruptProcessingException()

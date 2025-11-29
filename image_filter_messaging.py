@@ -11,11 +11,17 @@ WAITING_FOR_RESPONSE = "-9"
 SPECIALS = [REQUEST_RESHOW, CANCEL, WAITING_FOR_RESPONSE]
 
 class Response:
-    def __init__(self, selection:Optional[list[str]] = None, text:Optional[str] = None,
-                        masked_image:Optional[str] = None, extras:Optional[list[str]] = None):
+    def __init__(
+            self, 
+            selection:Optional[list[str]] = None, 
+            text:Optional[str] = None,
+            masked_image:Optional[str] = None, 
+            masked_data:Optional[str]  = None,
+            extras:Optional[list[str]] = None):
         self.selection:list[int]        = [int(x) for x in selection] if selection else []
         self.text:Optional[str]         = text
         self.masked_image:Optional[str] = masked_image
+        self.masked_data:Optional[str]  = masked_data
         self.extras:Optional[list[str]] = extras
 
     def get_extras(self,defaults:list[str]) -> list[str]:

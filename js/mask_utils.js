@@ -5,6 +5,8 @@ export function new_editor() {
 }
 
 function get_mask_editor_element() {
+    const newer = document.getElementsByClassName('p-dialog-mask')
+    if (newer.length==1) return newer[0]
     return new_editor() ? document.getElementById('maskEditor') : document.getElementById('maskCanvas')?.parentElement
 }
 
@@ -13,17 +15,30 @@ export function mask_editor_showing() {
 }
 
 export function hide_mask_editor() {
-    if (mask_editor_showing()) document.getElementById('maskEditor').style.display = 'none'
+    if (mask_editor_showing() && document.getElementById('maskEditor')) document.getElementById('maskEditor').style.display = 'none'
 }
 
 function get_mask_editor_cancel_button() {
-    if (document.getElementById("maskEditor_topBarCancelButton")) return document.getElementById("maskEditor_topBarCancelButton")
-    return get_mask_editor_element?.parentElement?.lastChild?.childNodes[2]
+    var button = document.getElementById("maskEditor_topBarCancelButton")
+    if (button) return button
+    try {
+        button = Array.from(get_mask_editor_element().getElementsByTagName('button')).find((b)=>(b.ariaLabel=='Cancel'))
+        if (button) return button
+    } catch {}
+
+    return get_mask_editor_element().parentElement.lastChild.childNodes[2]
+
 }
 
 function get_mask_editor_save_button() {
-    if (document.getElementById("maskEditor_topBarSaveButton")) return document.getElementById("maskEditor_topBarSaveButton")
-    return get_mask_editor_element?.parentElement?.lastChild?.childNodes[2]
+    var button = document.getElementById("maskEditor_topBarSaveButton")
+    if (button) return button
+    try {
+        button = Array.from(get_mask_editor_element().getElementsByTagName('button')).find((b)=>(b.ariaLabel=='Save'))
+        if (button) return button
+    } catch {}
+
+    return get_mask_editor_element?.parentElement?.lastChild?.childNodes[1]
 }
 
 export function mask_editor_listen_for_cancel(callback) {
@@ -40,4 +55,17 @@ export function press_maskeditor_save() {
 
 export function press_maskeditor_cancel() {
     get_mask_editor_cancel_button()?.click()
+}
+
+export function open_maskeditor(node) {
+    if (ComfyApp.open_maskeditor) { 
+        ComfyApp.copyToClipspace(node)
+        ComfyApp.clipspace_return_node = node
+        ComfyApp.open_maskeditor()
+    } else {
+        const me_extension = app.extensions.find((e)=>(e.name=='Comfy.MaskEditor'))
+        const me_command = me_extension.commands.find((c)=>(c.id=='Comfy.MaskEditor.OpenMaskEditor'))
+        app.canvas.selected_nodes = [node,]
+        me_command.function()
+    }
 }
