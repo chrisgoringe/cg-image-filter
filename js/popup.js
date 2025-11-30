@@ -98,6 +98,7 @@ class Popup extends HTMLElement {
 
     toggleHide() {
         this.hidden_by_toggle = !this.hidden_by_toggle
+        if (!this.hidden_by_toggle) this.layout()
         this.render()
     }
 
@@ -655,13 +656,6 @@ class Popup extends HTMLElement {
     }
 
     rescale_images() {
-        /*const justify = /*this.per_row > 1 ? "start" : "center"
-        const align = /*this.rows > 1 ? "start" : "center"
-        this.grid.style.justifyItems = justify
-        this.grid.style.alignItems = align
-        this.overlaygrid.style.justifyItems = justify
-        this.overlaygrid.style.alignItems = align*/
-
         const box = this.grid.getBoundingClientRect()
         const sub = this.grid.firstChild.getBoundingClientRect()
         const w_used = (sub.width+GRID_IMAGE_SPACE)*this.per_row / box.width
