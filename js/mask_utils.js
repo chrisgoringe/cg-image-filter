@@ -22,9 +22,14 @@ function get_mask_editor_cancel_button() {
     var button = document.getElementById("maskEditor_topBarCancelButton")
     if (button) return button
     try {
-        button = Array.from(get_mask_editor_element().getElementsByTagName('button')).find((b)=>(b.ariaLabel=='Cancel'))
+        const buttons = Array.from(get_mask_editor_element().getElementsByTagName('button'))
+        button = buttons.find((b)=>(b.ariaLabel=='Cancel'))
         if (button) return button
-    } catch {}
+        button = buttons.find((b)=>(b.innerText=='Cancel'))
+        if (button) return button
+    } catch {
+        let a;
+    }
 
     return get_mask_editor_element().parentElement.lastChild.childNodes[2]
 
@@ -34,9 +39,14 @@ function get_mask_editor_save_button() {
     var button = document.getElementById("maskEditor_topBarSaveButton")
     if (button) return button
     try {
-        button = Array.from(get_mask_editor_element().getElementsByTagName('button')).find((b)=>(b.ariaLabel=='Save'))
+        const buttons = Array.from(get_mask_editor_element().getElementsByTagName('button'))
+        button = buttons.find((b)=>(b.ariaLabel=='Save'))
         if (button) return button
-    } catch {}
+        button = buttons.find((b)=>(b.innerText=='Save'))
+        if (button) return button
+    } catch {
+        let a;
+    }
 
     return get_mask_editor_element?.parentElement?.lastChild?.childNodes[1]
 }
