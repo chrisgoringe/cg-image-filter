@@ -13,16 +13,18 @@ class SplitByCommas:
     def INPUT_TYPES(cls):
         return {
             "required": { "string" : ("STRING", {"default":""}), },
-            "optional": { "split": ([",", "|", "^", ":", "-", "_"], {}), },
+            "optional": { "split": ([",", "|", "^", ":", "-", "_", "linebreak"], {}), },
         }
     
     def func(self, string:str, split:str=",") -> tuple[str,str,str,str,str,list[str]]:
+        if split == "linebreak": split = "\n"
         bits:list[str] = [r.strip() for r in string.split(split)] 
 
         while len(bits)<5: bits.append("")
         if len(bits)>5: bits = bits[:4] + [",".join(bits[4:]),]
 
         return (bits[0], bits[1], bits[2], bits[3], bits[4], bits)
+
 
     
 class AnyListToString:
