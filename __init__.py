@@ -7,7 +7,7 @@
 
 from .image_filter import ImageFilter, MaskImageFilter, TextImageFilterWithExtras
 from .list_utility_nodes import PickFromList, BatchFromImageList, ImageListFromBatch, StringListFromStrings
-from .string_utility_nodes import SplitByCommas, StringToFloat, StringToInt, AnyListToString
+from .string_utility_nodes import SplitByCommas, StringToFloat, StringToInt, AnyListToString, StringToStringList
 from .mask_utility_nodes import MaskedSection
 
 VERSION = "1.7"
@@ -19,6 +19,7 @@ NODE_CLASS_MAPPINGS= {
     "Text Image Filter with Extras": TextImageFilterWithExtras,
     "Mask Image Filter": MaskImageFilter,
     "Split String by Commas": SplitByCommas,
+    "String to String List": StringToStringList,
     "String to Int": StringToInt,
     "String to Float": StringToFloat,
     "Pick from List": PickFromList,

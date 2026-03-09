@@ -126,6 +126,7 @@ class TextImageFilterWithExtras(PreviewImage):
         return float("NaN")
     
     def func(self, image, text, timeout, uid, graph_id, extra1="", extra2="", extra3="", mask=None, tip="", textareaheight=None, **kwargs):
+        if image is None: image = torch.zeros((1,64,64,3))
         urls:list[str] = self.save_images(images=image, **kwargs)['ui']['images']
         payload = {"uid": uid, "urls":urls, "text":text, "extras":[extra1, extra2, extra3], "tip":tip}
         if textareaheight is not None: payload['textareaheight'] = textareaheight
