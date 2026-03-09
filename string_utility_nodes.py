@@ -1,4 +1,28 @@
 from comfy.comfy_types.node_typing import IO
+from comfy_api.latest import io
+
+class StringToStringList(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id      = "StringToStringList",
+            display_name = "String to String List",
+            category     = "quicknodes/prompting",
+            inputs       = [
+                io.String.Input("string"),
+                io.String.Input("split",default=",", tooltip="Split on this substring (or linebreak)"),
+            ],
+            outputs = [
+                io.String.Output("string_list", is_output_list=True),
+             ],
+        )
+    
+    @classmethod
+    def execute(cls, string, split): # type: ignore
+        if split == "linebreak": split = "\n"
+        bits:list[str] = [r.strip() for r in string.split(split)] 
+        return io.NodeOutput(bits)
+
 
 class SplitByCommas:
     RETURN_TYPES = ("STRING","STRING","STRING","STRING","STRING","STRING")
@@ -24,8 +48,6 @@ class SplitByCommas:
         if len(bits)>5: bits = bits[:4] + [",".join(bits[4:]),]
 
         return (bits[0], bits[1], bits[2], bits[3], bits[4], bits)
-
-
     
 class AnyListToString:
     RETURN_TYPES = ("STRING",)
