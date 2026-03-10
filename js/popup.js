@@ -83,6 +83,7 @@ class Popup extends HTMLElement {
         this.mask_cancel_button.addEventListener('click', press_maskeditor_cancel )
 
         this.text_edit = create('textarea', 'text_edit row', this.floating_window.body)
+        this.text_edit.id = 'text_edit'
 
         this.picked = new Set()
     
@@ -325,7 +326,21 @@ class Popup extends HTMLElement {
             if (detail.maskedit)   this.handle_maskedit(detail) 
             else if (detail.urls)  this.handle_urls(detail)
 
+            if (detail.tip && detail.text) this.add_tags()
+
         } finally { this.handling_message = false }  
+    }
+
+    add_tags() {
+        const re = /{{(.*?)}}/gm
+
+        var m = re.exec(this.tip_row.innerHTML)
+        while (m) {
+            const replacement = `<span onclick='document.getElementById("text_edit").value += this.innerText' class='insertable'">${m[1]}</span>`
+            this.tip_row.innerHTML = this.tip_row.innerHTML.replace(m[0], replacement) // link m[1]
+            m = re.exec(this.tip_row.innerHTML)
+        }
+
     }
 
     window_not_showing(uid) {

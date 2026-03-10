@@ -78,6 +78,11 @@
     margin: 4px;
     padding: 4px 0px;
     justify-content: flex-start;
+    display: block;
+}
+
+.cgfloat_body .row.tip .insertable {
+    text-decoration: underline;
 }
 
 /* Text Edit */
