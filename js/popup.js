@@ -326,7 +326,7 @@ class Popup extends HTMLElement {
             if (detail.maskedit)   this.handle_maskedit(detail) 
             else if (detail.urls)  this.handle_urls(detail)
 
-            if (detail.tip && detail.text) this.add_tags()
+            if (detail.tip) this.add_tags()
 
         } finally { this.handling_message = false }  
     }
