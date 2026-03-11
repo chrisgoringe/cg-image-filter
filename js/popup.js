@@ -275,7 +275,7 @@ class Popup extends HTMLElement {
 
     _handle_message(message, using_saved) {
         const detail = message.detail
-        const uid = detail.uid
+        const uid = app.runningNodeId
         const the_node = this.find_node(uid)
         const graph_id = message.detail.graph_id
 
