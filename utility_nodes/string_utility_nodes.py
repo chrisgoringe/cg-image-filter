@@ -34,11 +34,11 @@ class SplitByCommas(io.ComfyNode):
                 io.String.Input("split", default=",", tooltip="Split on this substring (or linebreak)"),                
             ],
             outputs = [
-                io.String.Output("string1", display_name="string", is_output_list=True),
-                io.String.Output("string2", display_name="string", is_output_list=True),
-                io.String.Output("string3", display_name="string", is_output_list=True),
-                io.String.Output("string4", display_name="string", is_output_list=True),
-                io.String.Output("string5", display_name="string", is_output_list=True),
+                io.String.Output("string1", display_name="string"),
+                io.String.Output("string2", display_name="string"),
+                io.String.Output("string3", display_name="string"),
+                io.String.Output("string4", display_name="string"),
+                io.String.Output("string5", display_name="string"),
                 io.String.Output("all_as_list", display_name="all", is_output_list=True),
             ],
             category = "image_filter/helpers",
@@ -101,7 +101,7 @@ class StringToFloat(io.ComfyNode):
             node_id      = "String to Float",
             display_name = "String to Float",
             inputs       = [
-                io.String.Input("float"),
+                io.String.Input("string"),
                 io.Float.Input("default")
             ],
             outputs = [
