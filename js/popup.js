@@ -396,8 +396,17 @@ class Popup extends HTMLElement {
             } else {
                 this._send_response({masked_data:this.node.imgs[0].src})
             }
-            
+            this.remove_preview(this.node)
         } 
+    }
+
+    remove_preview(node) {
+        const w = node.widgets.findIndex((w)=>{return w.name=='$$canvas-image-preview'})
+        if (w) {
+            node.widgets.splice(w,1)
+            node.imgs = []
+            node.images = []
+        }
     }
 
     extract_filename(url_string) {
