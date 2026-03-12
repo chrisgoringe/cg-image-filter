@@ -30,6 +30,28 @@ class FilterNodeBase:
     @classmethod
     def VALIDATE_INPUTS(cls, *args, **kwargs): return True
 
+    @classmethod
+    def stack_latents(cls, latents:dict[str,torch.Tensor]|None, images_to_return:list[int]) -> dict[str,torch.Tensor]|None:
+        if latents is None: return None
+        try:
+            return {"samples": torch.stack(list(latents['samples'][int(i)] for i in images_to_return))} if latents is not None else None
+        except IndexError:
+            print(f"Index error stacking latents: {images_to_return}")
+            return None
+        
+    @classmethod
+    def stack_images(cls, images:torch.Tensor|None, images_to_return:list[int]) -> torch.Tensor|None:
+        if images is None: return None
+        try:
+            return torch.stack(list(images[i] for i in images_to_return))
+        except IndexError:
+            print(f"Index error stacking images: {images_to_return}")
+            return None
+        
+    @classmethod
+    def stack_masks(cls, masks:torch.Tensor|None, images_to_return:list[int]) -> torch.Tensor|None:
+        return cls.stack_images(masks, images_to_return)
+
 
 class ImageFilter(io.ComfyNode, FilterNodeBase):
     @classmethod
@@ -79,13 +101,14 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
     @classmethod
     def execute( # type: ignore
         cls, 
-        images: torch.Tensor, latents=None, masks=None, 
+        images: torch.Tensor|None, latents=None, masks=None, 
         timeout:int=600, ontimeout:str="send none", 
         graph_id:str="", 
         tip:str="", extra1:str="", extra2:str="", extra3:str="", 
         pick_list_start:int=0, pick_list:str="", video_frames:int=1,
         **kwargs
     ) -> io.NodeOutput:
+        assert images is not None, "Image Filter received None for images"
         e1, e2, e3 = extra1, extra2, extra3
         B = images.shape[0]
 
@@ -119,9 +142,9 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
         if video_frames>1:
             images_to_return = [ key*video_frames + frm  for key in images_to_return for frm in range(video_frames) ]
 
-        images = torch.stack(list(images[i] for i in images_to_return))
-        latents = {"samples": torch.stack(list(latents['samples'][int(i)] for i in images_to_return))} if latents is not None else None
-        masks = torch.stack(list(masks[i] for i in images_to_return)) if masks is not None else None
+        images  = cls.stack_images (images,  images_to_return) 
+        latents = cls.stack_latents(latents, images_to_return)
+        masks   = cls.stack_masks  (masks,   images_to_return)
                 
         return io.NodeOutput(images, latents, masks, e1, e2, e3, ",".join(str(x+pick_list_start) for x in images_to_return))
     
