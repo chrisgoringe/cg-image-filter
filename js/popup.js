@@ -401,14 +401,12 @@ class Popup extends HTMLElement {
     }
 
     remove_preview(node) {
-        node.onresize = () => {
-            let a;
-        }
         const w = node.widgets.findIndex((w)=>{return w.name=='$$canvas-image-preview'})
         if (w>=0) {
             node.widgets.splice(w,1)
             node.imgs = []
             node.images = []
+            node.setSize(node.computeSize())
         }
     }
 
