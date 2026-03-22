@@ -361,6 +361,9 @@ class Popup extends HTMLElement {
     }
 
     handle_maskedit(detail) {
+        if ( mask_editor_showing() ) {
+            return
+        }
         if (!this.node) {
             Log.log(`No node to handle maskedit - maybe it's been removed`)
             this.seen_editor = true
@@ -390,24 +393,21 @@ class Popup extends HTMLElement {
         if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
         } else {
-            const masked_image = this.extract_filename(this.node.imgs[0].src)
-            if (masked_image) {
-                this._send_response({masked_image:this.extract_filename(this.node.imgs[0].src)})
-            } else {
-                this._send_response({masked_data:this.node.imgs[0].src})
-            }
-            this.remove_preview(this.node)
+            const masked_image = this.node.imgs?.[0]?.src ? this.extract_filename(this.node.imgs[0].src) : this.node.images?.[0]?.filename
+            this._send_response({masked_image:masked_image})
+
+            const the_node = this.node.id
+            setTimeout(this.remove_preview, 500, [the_node,])
         } 
     }
 
-    remove_preview(node) {
-        const w = node.widgets.findIndex((w)=>{return w.name=='$$canvas-image-preview'})
-        if (w>=0) {
-            node.widgets.splice(w,1)
-            node.imgs = []
-            node.images = []
+    remove_preview(node_id) {
+        const node = app.canvas.graph.getNodeById(node_id)
+        const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
+        if (w) {
+            w.hidden = true
             node.setSize(node.computeSize())
-        }
+        } 
     }
 
     extract_filename(url_string) {
