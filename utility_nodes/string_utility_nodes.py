@@ -49,7 +49,7 @@ class SplitByCommas(io.ComfyNode):
     def execute(cls, string, split): # type: ignore
         if split == "linebreak": split = "\n"
         bits:list[str] = [r.strip() for r in string.split(split)] 
-        five = (bits + [""*5])[:5]
+        five = (bits + ["",]*5)[:5]
         return io.NodeOutput(*five, bits)
     
 class AnyListToString(io.ComfyNode):
