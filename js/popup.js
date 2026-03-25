@@ -336,7 +336,7 @@ class Popup extends HTMLElement {
 
         var m = re.exec(this.tip_row.innerHTML)
         while (m) {
-            const replacement = `<span onclick='document.getElementById("text_edit").value += this.innerText' class='insertable'">${m[1]}</span>`
+            const replacement = `<span onclick='const te = document.getElementById("text_edit"); te.value += this.innerText + " "; te.focus()' class='insertable'>${m[1]}</span>`
             this.tip_row.innerHTML = this.tip_row.innerHTML.replace(m[0], replacement) // link m[1]
             m = re.exec(this.tip_row.innerHTML)
         }
