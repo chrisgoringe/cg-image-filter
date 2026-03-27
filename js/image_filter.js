@@ -2,7 +2,7 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
-import { popup } from "./popup.js";
+import { popup, remove_preview } from "./popup.js";
 import { graph_id_to_tab } from "./weak_map.js";
 import { Log } from "./log.js";
 
@@ -114,10 +114,18 @@ app.registerExtension({
     },
 
     afterConfigureGraph() {
-        setTimeout( ()=> { app.graph.nodes.forEach( set_graph_id_widget ) }, 1000 )
+        setTimeout( afterConfigure, 100 )
         link_to_tab(3)
     }
 })
+
+function afterConfigure() {
+    app.graph.nodes.forEach( (node) => {
+            set_graph_id_widget(node)
+            if (node.comfyClass == 'Mask Image Filter') remove_preview(node.id)
+        }
+    )
+}
 
 function set_graph_id_widget(node) {
     const graph_id_widget = node.widgets?.find((n)=>n.name=='graph_id')

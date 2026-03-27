@@ -397,16 +397,7 @@ class Popup extends HTMLElement {
             this._send_response({masked_image:masked_image})
 
             const the_node = this.node.id
-            setTimeout(this.remove_preview, 500, [the_node,])
-        } 
-    }
-
-    remove_preview(node_id) {
-        const node = app.canvas.graph.getNodeById(node_id)
-        const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
-        if (w) {
-            w.hidden = true
-            node.setSize(node.computeSize())
+            setTimeout(remove_preview, 500, [the_node,])
         } 
     }
 
@@ -712,3 +703,13 @@ class Popup extends HTMLElement {
 customElements.define('cg-imgae-filter-popup', Popup)
 
 export const popup = new Popup()
+
+
+export function remove_preview(node_id) {
+    const node = app.canvas.graph.getNodeById(node_id)
+    const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
+    if (w) {
+        w.hidden = true
+        node.setSize(node.computeSize())
+    } 
+}
