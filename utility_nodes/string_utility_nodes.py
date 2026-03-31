@@ -87,6 +87,7 @@ class StringToInt(io.ComfyNode):
                 io.Int.Output("int")
             ],
             category = "image_filter/helpers",
+            is_deprecated=True,
         )
 
     @classmethod
@@ -99,6 +100,50 @@ class StringToFloat(io.ComfyNode):
     def define_schema(cls):
         return io.Schema(
             node_id      = "String to Float",
+            display_name = "String to Float",
+            inputs       = [
+                io.String.Input("string"),
+                io.Float.Input("default")
+            ],
+            outputs = [
+                io.Float.Output("float")
+            ],
+            category = "image_filter/helpers",
+            is_deprecated=True,
+        )
+
+    @classmethod
+    def execute(cls, string:str, default:float): # type: ignore
+        try:    return io.NodeOutput(float(string.strip()),)
+        except: return io.NodeOutput(default,)
+
+    
+class cg_StringToInt(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id      = "cg_String to Int",
+            display_name = "String to Int",
+            inputs       = [
+                io.String.Input("string"),
+                io.Int.Input("default")
+            ],
+            outputs = [
+                io.Int.Output("int")
+            ],
+            category = "image_filter/helpers",
+        )
+
+    @classmethod
+    def execute(cls, string:str, default:int): # type: ignore
+        try:    return io.NodeOutput(int(string.strip()),)
+        except: return io.NodeOutput(default,)
+
+class cg_StringToFloat(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id      = "cg_String to Float",
             display_name = "String to Float",
             inputs       = [
                 io.String.Input("string"),
