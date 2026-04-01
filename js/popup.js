@@ -218,6 +218,9 @@ class Popup extends HTMLElement {
     request_reset() { this._send_response({special:REQUEST_RESHOW}, true) }
 
     close() { 
+        if (this.state==State.MASK) {
+            press_maskeditor_cancel()
+        }
         this.state = State.INACTIVE
         this.render()
     }

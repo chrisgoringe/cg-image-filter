@@ -282,8 +282,9 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
             mask = mask_from_data(data)
 
         if if_no_mask == 'cancel' and torch.all(mask==0): raise InterruptProcessingException()
+        if mask is None: mask = torch.zeros_like(image[...,0])  
 
-        InOutStore.last_output = ( image.clone(), mask.clone() if mask is not None else None, *response.get_extras((extra1, extra2, extra3)) )
+        InOutStore.last_output = ( image.clone(), mask.clone(), *response.get_extras((extra1, extra2, extra3)) )
         return io.NodeOutput( *InOutStore.last_output )
 
     @classmethod

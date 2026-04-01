@@ -125,33 +125,11 @@ function afterConfigure() {
     app.graph.nodes.forEach( (node) => {
             if (FILTER_TYPES.includes(node.type)) {
                 set_graph_id_widget(node)
-                update_version(node)
             }
             set_graph_id_widget(node)
             if (node.type == 'Mask Image Filter') remove_preview(node.id)
         }
     )
-}
-const update_map = {
-    "old": function(values) {
-        return [ values[0], values[1], "Run normally", values[2], values[3], values[4], values[5], values[6] ]
-    }
-}
-
-function update_version(node) {
-    var update_func = undefined
-    if (!node.properties.image_filter_version || node.widgets_values.length!=8) { // before v. 1.7 
-        update_func = update_map["old"]
-    }
-    // else if etc. for future updates
-    if (update_func) {
-        const new_values = update_func(node.widgets_values)
-        for (let i=0; i<new_values.length; i++) {
-            node.widgets[i].value = new_values[i]
-            node.widgets_values[i] = new_values[i]
-        }
-    }
-    node.properties.image_filter_version = VERSION
 }
 
 function set_graph_id_widget(node) {
