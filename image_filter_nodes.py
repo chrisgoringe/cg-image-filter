@@ -2,6 +2,7 @@ from nodes import PreviewImage, LoadImage
 from comfy.model_management import InterruptProcessingException
 import os, random
 import torch
+from typing import Any
 
 import base64
 from io import BytesIO
@@ -134,7 +135,7 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
                 if ontimeout=='send first': images_to_return = [0,]
                 if ontimeout=='send last':  images_to_return = [(len(images)//video_frames)-1,]
             else:
-                e1, e2, e3 = response.get_extras([extra1, extra2, extra3])
+                e1, e2, e3 = response.get_extras((extra1, extra2, extra3))
                 images_to_return = response.selection or []
 
         if not images_to_return: raise InterruptProcessingException()
@@ -189,7 +190,7 @@ class TextImageFilterWithExtras(io.ComfyNode, FilterNodeBase):
         if isinstance(response, TimeoutResponse):
             return io.NodeOutput(image, text, extra1, extra2, extra3)
 
-        return io.NodeOutput(image, response.text, *response.get_extras([extra1, extra2, extra3])) 
+        return io.NodeOutput(image, response.text, *response.get_extras((extra1, extra2, extra3)))
     
 
 def mask_to_image(mask:torch.Tensor):
@@ -204,6 +205,24 @@ def mask_from_data(data) -> torch.Tensor:
     mask = np.array(img.getchannel('A')).astype(np.float32) / 255.0
     mask = 1. - torch.from_numpy(mask)
     return mask.unsqueeze(0)
+
+class InOutStore:
+    previous_inputs:list[Any] = []
+    last_output:tuple[torch.Tensor, torch.Tensor|None, str, str, str]|None = None
+
+    @classmethod
+    def check_input_unchanged(cls, *args) -> bool:
+        def make_copy(x): return x.clone() if isinstance(x, torch.Tensor) else x
+        try:
+            if len(cls.previous_inputs)!=len(args): return False
+            for prev, new in zip(cls.previous_inputs, args):
+                if isinstance(prev, torch.Tensor) and isinstance(new, torch.Tensor):
+                    if not torch.equal(prev, new): return False
+                else:
+                    if prev != new: return False
+            return True
+        finally:
+            cls.previous_inputs = [ make_copy(x) for x in args ]
     
 class MaskImageFilter(io.ComfyNode, FilterNodeBase):
     @classmethod
@@ -215,6 +234,7 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
                 io.Image.Input("image"),
                 io.Int.Input("timeout", default=600, min=1, max=1000000, tooltip="timeout in seconds"),
                 io.Combo.Input("if_no_mask", options=["cancel", "send blank"], default="send blank"),
+                io.Combo.Input("if_inputs_unchanged", options=["Run normally", "Start with last output", "Resend last output"], default="Run normally"),
                 io.Mask.Input("mask", optional=True, tooltip="optional"),
                 io.String.Input("tip", default="", optional=True),
                 io.String.Input("extra1", default="", optional=True),
@@ -233,13 +253,21 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
         )
 
     @classmethod
-    def execute(cls, image, timeout, if_no_mask, graph_id, mask=None, extra1="", extra2="", extra3="", tip="", **kwargs): # type: ignore
+    def execute(cls, image, timeout, if_no_mask, graph_id, if_inputs_unchanged="Run normally", mask=None, extra1="", extra2="", extra3="", tip="", **kwargs): # type: ignore
+        # check if everything is unchanged (and store these inputs for next check)
+        if InOutStore.check_input_unchanged(image, timeout, if_no_mask, graph_id, mask, extra1, extra2, extra3, tip) and InOutStore.last_output is not None:
+            if if_inputs_unchanged == "Start with last output":
+                image, mask, extra1, extra2, extra3 = InOutStore.last_output
+                mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
+            elif if_inputs_unchanged == "Resend last output":
+                return io.NodeOutput( *InOutStore.last_output )
+            
         if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
-            saveable = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
+            input_to_send = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
         else:
-            saveable = image
+            input_to_send = image
 
-        urls = cls.save_images_return_urls(images=saveable, **kwargs)
+        urls = cls.save_images_return_urls(images=input_to_send, **kwargs)
         payload = { "urls":urls, "maskedit":True, "extras":[extra1, extra2, extra3], "tip":tip}
         response = send_and_wait(payload, timeout, graph_id)
         
@@ -254,4 +282,10 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
             mask = mask_from_data(data)
 
         if if_no_mask == 'cancel' and torch.all(mask==0): raise InterruptProcessingException()
-        return io.NodeOutput( image, mask, *response.get_extras([extra1, extra2, extra3]) )
+
+        InOutStore.last_output = ( image.clone(), mask.clone() if mask is not None else None, *response.get_extras((extra1, extra2, extra3)) )
+        return io.NodeOutput( *InOutStore.last_output )
+
+    @classmethod
+    def fingerprint_inputs(cls, **kwargs) -> Any:
+        return random.random()

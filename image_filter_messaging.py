@@ -17,14 +17,14 @@ class Response:
             text:Optional[str] = None,
             masked_image:Optional[str] = None, 
             masked_data:Optional[str]  = None,
-            extras:Optional[list[str]] = None):
+            extras:Optional[tuple[str,str,str]] = None):
         self.selection:list[int]        = [int(x) for x in selection] if selection else []
         self.text:Optional[str]         = text
         self.masked_image:Optional[str] = masked_image
         self.masked_data:Optional[str]  = masked_data
-        self.extras:Optional[list[str]] = extras
+        self.extras:Optional[tuple[str,str,str]] = extras
 
-    def get_extras(self,defaults:list[str]) -> list[str]:
+    def get_extras(self,defaults:tuple[str,str,str]) -> tuple[str,str,str]:
          return self.extras or defaults  
 
 class TimeoutResponse(Response): pass
