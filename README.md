@@ -19,6 +19,13 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
 
+## New in 1.7 ##
+
+- Options for Mask Image Filter behaviour when no inpouts are changed
+- Fixed several bugs in Mask Image Filter
+- Updated to use new Comfy UI node specification
+- Added typing shortcuts
+
 ## New in 1.6.4 ##
 
 - Small window now has a button that can be used to hide/show the main window, allowing you to view the workflow 
@@ -188,6 +195,8 @@ The image and (edited) text are output. The intended use is for captioning workf
 generated. Here's a trivial workflow:
 
 ![text workflow](images/text%20workflow.png)
+
+Typing shortcuts. If you find you often use the same text in the `text` field, you can create shortcuts in the `tip` by enclosing them `{{ like this }}`
 
 ---
 

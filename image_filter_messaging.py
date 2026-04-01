@@ -17,14 +17,14 @@ class Response:
             text:Optional[str] = None,
             masked_image:Optional[str] = None, 
             masked_data:Optional[str]  = None,
-            extras:Optional[list[str]] = None):
+            extras:Optional[tuple[str,str,str]] = None):
         self.selection:list[int]        = [int(x) for x in selection] if selection else []
         self.text:Optional[str]         = text
         self.masked_image:Optional[str] = masked_image
         self.masked_data:Optional[str]  = masked_data
-        self.extras:Optional[list[str]] = extras
+        self.extras:Optional[tuple[str,str,str]] = extras
 
-    def get_extras(self,defaults:list[str]) -> list[str]:
+    def get_extras(self,defaults:tuple[str,str,str]) -> tuple[str,str,str]:
          return self.extras or defaults  
 
 class TimeoutResponse(Response): pass
@@ -101,26 +101,25 @@ async def cg_image_filter_message(request):
 
     return web.json_response({})
 
-def wait_for_response(secs, uid, graph_id) -> Response:
+def wait_for_response(secs, graph_id) -> Response:
     MessageState.start_waiting(graph_id)
     try:
         end_time = time.monotonic() + secs
         while(time.monotonic() < end_time and MessageState.waiting()): 
             throw_exception_if_processing_interrupted()
-            PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic()), "uid": uid, "graph_id":graph_id})
+            PromptServer.instance.send_sync("cg-image-filter-images", {"tick": int(end_time - time.monotonic()), "graph_id":graph_id})
             time.sleep(0.5)
         if MessageState.waiting():
-            PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "uid": uid, "graph_id":graph_id})
+            PromptServer.instance.send_sync("cg-image-filter-images", {"timeout": True, "graph_id":graph_id})
         return MessageState.get_response()
     finally: MessageState.stop_waiting()
     
-def send_and_wait(payload, timeout, uid, graph_id) -> Response:
-    payload['uid']      = uid
+def send_and_wait(payload, timeout, graph_id) -> Response:
     payload['graph_id'] = graph_id
 
     while True:
         PromptServer.instance.send_sync("cg-image-filter-images", payload)
-        r = wait_for_response(timeout, uid, graph_id)
+        r = wait_for_response(timeout, graph_id)
         if isinstance(r,CancelledResponse): raise InterruptProcessingException()
         if (not isinstance(r, RequestResponse)): return r
       

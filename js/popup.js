@@ -83,6 +83,7 @@ class Popup extends HTMLElement {
         this.mask_cancel_button.addEventListener('click', press_maskeditor_cancel )
 
         this.text_edit = create('textarea', 'text_edit row', this.floating_window.body)
+        this.text_edit.id = 'text_edit'
 
         this.picked = new Set()
     
@@ -217,6 +218,9 @@ class Popup extends HTMLElement {
     request_reset() { this._send_response({special:REQUEST_RESHOW}, true) }
 
     close() { 
+        if (this.state==State.MASK) {
+            press_maskeditor_cancel()
+        }
         this.state = State.INACTIVE
         this.render()
     }
@@ -274,7 +278,7 @@ class Popup extends HTMLElement {
 
     _handle_message(message, using_saved) {
         const detail = message.detail
-        const uid = detail.uid
+        const uid = app.runningNodeId
         const the_node = this.find_node(uid)
         const graph_id = message.detail.graph_id
 
@@ -325,7 +329,21 @@ class Popup extends HTMLElement {
             if (detail.maskedit)   this.handle_maskedit(detail) 
             else if (detail.urls)  this.handle_urls(detail)
 
+            if (detail.tip) this.add_tags()
+
         } finally { this.handling_message = false }  
+    }
+
+    add_tags() {
+        const re = /{{(.*?)}}/gm
+
+        var m = re.exec(this.tip_row.innerHTML)
+        while (m) {
+            const replacement = `<span onclick='const te = document.getElementById("text_edit"); te.value += this.innerText + " "; te.focus()' class='insertable'>${m[1]}</span>`
+            this.tip_row.innerHTML = this.tip_row.innerHTML.replace(m[0], replacement) // link m[1]
+            m = re.exec(this.tip_row.innerHTML)
+        }
+
     }
 
     window_not_showing(uid) {
@@ -346,6 +364,9 @@ class Popup extends HTMLElement {
     }
 
     handle_maskedit(detail) {
+        if ( mask_editor_showing() ) {
+            return
+        }
         if (!this.node) {
             Log.log(`No node to handle maskedit - maybe it's been removed`)
             this.seen_editor = true
@@ -375,13 +396,11 @@ class Popup extends HTMLElement {
         if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
         } else {
-            const masked_image = this.extract_filename(this.node.imgs[0].src)
-            if (masked_image) {
-                this._send_response({masked_image:this.extract_filename(this.node.imgs[0].src)})
-            } else {
-                this._send_response({masked_data:this.node.imgs[0].src})
-            }
-            
+            const masked_image = this.node.imgs?.[0]?.src ? this.extract_filename(this.node.imgs[0].src) : this.node.images?.[0]?.filename
+            this._send_response({masked_image:masked_image})
+
+            const the_node = this.node.id
+            setTimeout(remove_preview, 500, [the_node,])
         } 
     }
 
@@ -687,3 +706,16 @@ class Popup extends HTMLElement {
 customElements.define('cg-imgae-filter-popup', Popup)
 
 export const popup = new Popup()
+
+
+export function remove_preview(node_id, is_echo) {
+    const node = app.canvas.graph.getNodeById(node_id)
+    if (!node) return
+    const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
+    if (w && !w.hidden) {
+        w.hidden = true
+        node.setSize( [node.size[0], node.computeSize()[1]] )
+    } 
+
+    if (!is_echo) setTimeout(remove_preview, 100, [node_id, true])
+}

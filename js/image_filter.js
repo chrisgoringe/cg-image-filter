@@ -2,18 +2,20 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
-import { popup } from "./popup.js";
+import { popup, remove_preview } from "./popup.js";
 import { graph_id_to_tab } from "./weak_map.js";
 import { Log } from "./log.js";
 
 const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
+
+const VERSION = "1.7"
 
 app.registerExtension({
 	name: "cg.image_filter",
     settings: [
         {
             id: "Image Filter. Image Filter",
-            name: "Version 1.6.5",
+            name: `Version ${VERSION}`,
             type: () => {
                 const x = document.createElement('span')
                 const a = document.createElement('a')
@@ -114,10 +116,21 @@ app.registerExtension({
     },
 
     afterConfigureGraph() {
-        setTimeout( ()=> { app.graph.nodes.forEach( set_graph_id_widget ) }, 1000 )
+        setTimeout( afterConfigure, 100 )
         link_to_tab(3)
     }
 })
+
+function afterConfigure() {
+    app.graph.nodes.forEach( (node) => {
+            if (FILTER_TYPES.includes(node.type)) {
+                set_graph_id_widget(node)
+            }
+            set_graph_id_widget(node)
+            if (node.type == 'Mask Image Filter') remove_preview(node.id)
+        }
+    )
+}
 
 function set_graph_id_widget(node) {
     const graph_id_widget = node.widgets?.find((n)=>n.name=='graph_id')
