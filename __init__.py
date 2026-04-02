@@ -5,7 +5,7 @@
 @description: A custom node that pauses the flow while you choose which image or images to pass on to the rest of the workflow. Simplified and improved version of cg-image-picker.
 """
 
-VERSION = "1.7"
+VERSION = "1.8"
 WEB_DIRECTORY = "./js"
 __all__ = ["WEB_DIRECTORY"]
 

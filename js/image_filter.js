@@ -8,7 +8,7 @@ import { Log } from "./log.js";
 
 const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
 
-const VERSION = "1.7"
+const VERSION = "1.8"
 
 app.registerExtension({
 	name: "cg.image_filter",
