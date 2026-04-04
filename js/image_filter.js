@@ -110,6 +110,7 @@ app.registerExtension({
             const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
                 set_graph_id_widget(this)
+                if (this.type == 'Mask Image Filter') remove_preview(this.id)
                 return onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
             }
         }
