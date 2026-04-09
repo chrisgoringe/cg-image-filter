@@ -281,10 +281,12 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
             data = response.masked_data.split(',',1)[-1]
             mask = mask_from_data(data)
 
-        if if_no_mask == 'cancel' and torch.all(mask==0): raise InterruptProcessingException()
-        if mask is None: mask = torch.zeros_like(image[...,0])  
+        if mask is None: mask = torch.zeros_like(image[...,0]) 
+        if if_no_mask == 'cancel' and torch.all(mask==0): raise InterruptProcessingException() 
 
         InOutStore.last_output = ( image.clone(), mask.clone(), *response.get_extras((extra1, extra2, extra3)) )
+        if (image.shape[0:3] != mask.shape[0:3]):
+            print(f"Mask shape {mask.shape} does not match image shape {image.shape}")
         return io.NodeOutput( *InOutStore.last_output )
 
     @classmethod

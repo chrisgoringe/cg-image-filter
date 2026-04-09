@@ -396,12 +396,19 @@ class Popup extends HTMLElement {
         if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
         } else {
-            const masked_image = this.node.imgs?.[0]?.src ? this.extract_filename(this.node.imgs[0].src) : this.node.images?.[0]?.filename
-            this._send_response({masked_image:masked_image})
-
-            const the_node = this.node.id
-            setTimeout(remove_preview, 500, [the_node,])
+            setTimeout(this.when_mask_editor_closes.bind(this), 300) // allow a pause to make sure the mask editor has saved the image to the node
         } 
+    }
+
+    when_mask_editor_closes() {
+        if (this.node.imgs?.[0]?.src) {
+            this._send_response({masked_image:this.extract_filename(this.node.imgs[0].src)})
+        } else {
+            this._send_response({masked_image:this.node.images?.[0]?.filename})
+        }
+
+        const the_node = this.node.id
+        setTimeout(remove_preview, 200, [the_node,])
     }
 
     extract_filename(url_string) {

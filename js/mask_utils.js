@@ -19,15 +19,17 @@ export function hide_mask_editor() {
 }
 
 function get_mask_editor_cancel_button() {
-
     try {
         var button = document.getElementById("maskEditor_topBarCancelButton")
         if (button) return button
-        const buttons = Array.from(get_mask_editor_element()?.getElementsByTagName('button'))
-        button = buttons.find((b)=>(b.ariaLabel=='Cancel'))
-        if (button) return button
-        button = buttons.find((b)=>(b.innerText=='Cancel'))
-        if (button) return button
+        const buttonlist = get_mask_editor_element()?.getElementsByTagName('button')
+        if (buttonlist) {
+            const buttons = Array.from(buttonlist)
+            button = buttons.find((b)=>(b.ariaLabel=='Cancel'))
+            if (button) return button
+            button = buttons.find((b)=>(b.innerText=='Cancel'))
+            if (button) return button
+        }
         button = get_mask_editor_element()?.parentElement?.lastChild?.childNodes[2]
         if (button) return button
     } catch (e) {
