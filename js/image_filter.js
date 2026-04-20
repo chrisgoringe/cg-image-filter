@@ -3,7 +3,7 @@ import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
 import { popup, remove_preview } from "./popup.js";
-import { graph_id_to_tab } from "./weak_map.js";
+import { graph_id_to_tab } from "./graph_map.js";
 import { Log } from "./log.js";
 
 const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
@@ -107,37 +107,23 @@ app.registerExtension({
             }
         }
         if (FILTER_TYPES.includes(nodeType.comfyClass )) {
-            const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function () {
+            const configure = nodeType.prototype.configure;
+            nodeType.prototype.configure = function () {
+                configure?.apply(this, arguments) // configure sets the widget values, then we change them
                 set_graph_id_widget(this)
                 if (this.type == 'Mask Image Filter') remove_preview(this.id)
-                return onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
             }
         }
     },
 
-    afterConfigureGraph() {
-        setTimeout( afterConfigure, 100 )
-        link_to_tab(3)
-    }
+    afterConfigureGraph() { link_to_tab(3) }
 })
-
-function afterConfigure() {
-    app.graph.nodes.forEach( (node) => {
-            if (FILTER_TYPES.includes(node.type)) {
-                set_graph_id_widget(node)
-            }
-            set_graph_id_widget(node)
-            if (node.type == 'Mask Image Filter') remove_preview(node.id)
-        }
-    )
-}
 
 function set_graph_id_widget(node) {
     const graph_id_widget = node.widgets?.find((n)=>n.name=='graph_id')
     if (graph_id_widget) {
         graph_id_widget.hidden = true
-        graph_id_widget.value = `${app.graph.id}`     // app.graph.id is unique per tab, regardless of subgraph
+        graph_id_widget.value = `${app.graph.id}`
         graph_id_widget.computeSize = () => [0,0]  
     }
 }

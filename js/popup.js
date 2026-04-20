@@ -5,7 +5,7 @@ import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, p
 import { Log } from "./log.js";
 import { create } from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
-import { graph_id_to_tab } from "./weak_map.js";
+import { graph_id_to_tab } from "./graph_map.js";
 
 //const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
 const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras",]
