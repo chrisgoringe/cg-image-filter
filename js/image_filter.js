@@ -105,6 +105,7 @@ app.registerExtension({
                 }
                 return onConnectionsChange ? onConnectionsChange.apply(this, arguments) : undefined;
             }
+        }
         /*
         When a node gets configured (after it is created), set the graph widget and remove any preview.
         The base configure method sets widgets and other stuff, so call that *first*
