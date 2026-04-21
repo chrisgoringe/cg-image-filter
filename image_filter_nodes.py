@@ -148,7 +148,73 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
         masks   = cls.stack_masks  (masks,   images_to_return)
                 
         return io.NodeOutput(images, latents, masks, e1, e2, e3, ",".join(str(x+pick_list_start) for x in images_to_return))
-    
+
+class ImageFilterList(ImageFilter):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id      = "Image Filter for List",
+            display_name = "Image Filter for List",
+            inputs       = [
+                io.Image.Input("images"),
+                io.Latent.Input("latents", optional=True, tooltip="optional"),
+                io.Mask.Input("masks", optional=True, tooltip="optional"),
+                io.Int.Input("timeout", default=600, min=1, max=1000000, tooltip="timeout in seconds"),
+                io.Combo.Input("ontimeout", options=["send none", "send all", "send first", "send last"]),
+                io.String.Input("tip", default="", optional=True),
+                io.String.Input("extra1", default="", optional=True),
+                io.String.Input("extra2", default="", optional=True),
+                io.String.Input("extra3", default="", optional=True),
+                io.Int.Input("pick_list_start", optional=True, default=0, tooltip="The index of the first image (normally 0 or 1)"),
+                io.String.Input("pick_list", optional=True, default="", tooltip="If a comma separated list of integers is provided, the images with these indices will be selected automatically."),
+                io.Int.Input("video_frames", optional=True, default=1, tooltip="Treat each block of n images as a video"),
+                io.String.Input("graph_id", default="")
+            ],
+            is_input_list=True,
+            outputs = [
+                io.Image.Output("images", display_name="images", is_output_list=0 not in cls.OUTPUT_MERGED),
+                io.Latent.Output("latents", display_name="latents", is_output_list=1 not in cls.OUTPUT_MERGED),
+                io.Mask.Output("masks", display_name="masks", is_output_list=2 not in cls.OUTPUT_MERGED),
+                io.String.Output("extra1", display_name="extra1", is_output_list=3 not in cls.OUTPUT_MERGED),
+                io.String.Output("extra2", display_name="extra2", is_output_list=4 not in cls.OUTPUT_MERGED),
+                io.String.Output("extra3", display_name="extra3", is_output_list=5 not in cls.OUTPUT_MERGED),
+                io.String.Output("indexes", display_name="indexes", is_output_list=6 not in cls.OUTPUT_MERGED)
+            ],
+            category = "image_filter"
+        )
+    _INPUT_IS_LIST = True
+    OUTPUT_MERGED = [0,1,2,6] # the outputs that should be merged back into a single output instead of a list of outputs
+    OUTPUT_INDEXED = [6]
+    @classmethod
+    def execute(cls, **kwargs) -> io.NodeOutput: # type: ignore
+        n = len(kwargs['images'])
+        outputs:tuple|None = None
+        for i in range(n):
+            _kwargs = { k:kwargs[k][min(i,len(kwargs[k])-1)] for k in kwargs }
+            try:
+                o = super().execute(**_kwargs).args
+                if not outputs: outputs = tuple([] for _ in o)
+                for j, val in enumerate(o): 
+                    if j in cls.OUTPUT_INDEXED: 
+                        if "," in val:
+                            print("indexes output not supported for list of batches")
+                        else:
+                            val = str(int(val.strip())+i)
+                    outputs[j].append(val)
+            except InterruptProcessingException:
+                print(f"Interrupted {i}/{n} from list")
+        if not outputs: raise InterruptProcessingException()
+        def merge(x): 
+            if isinstance(x[0], torch.Tensor): 
+                return torch.cat(x, dim=0)
+            if isinstance(x[0], dict) and 'samples' in x[0] and isinstance(x[0]['samples'], torch.Tensor):
+                return {"samples": torch.cat([ item['samples'] for item in x ], dim=0)}
+            return ",".join(map(str,x))
+        outputs = tuple( (merge(o) if i in cls.OUTPUT_MERGED else o) for i,o in enumerate(outputs) )
+        return io.NodeOutput(*outputs)
+        
+
+
 class TextImageFilterWithExtras(io.ComfyNode, FilterNodeBase):
 
     @classmethod
@@ -275,8 +341,11 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
             try:
                 mask = cls.load_mask(response.masked_image)
             except FileNotFoundError: # no mask was uploaded; reload the input mask, or the mask in the input image
-                mask = mask if mask is not None else cls.load_mask(urls[0]['filename']+" [temp]")
-                
+                try:
+                    mask = cls.load_mask(urls[0]['filename']+" [temp]")
+                except FileNotFoundError:
+                    pass
+
         elif (response.masked_data): # new mask editor - sends the blob
             data = response.masked_data.split(',',1)[-1]
             mask = mask_from_data(data)

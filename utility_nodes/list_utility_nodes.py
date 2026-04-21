@@ -16,7 +16,7 @@ class BatchFromImageList(io.ComfyNode):
             is_input_list = True,
             category     = "image_filter/helpers"
         )
-
+    _INPUT_IS_LIST = True
     @classmethod
     def execute(cls, images): # type: ignore
         if len(images) <= 1:

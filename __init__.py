@@ -11,7 +11,7 @@ __all__ = ["WEB_DIRECTORY"]
 
 from comfy_api.latest import ComfyExtension, io
 
-from .image_filter_nodes import ImageFilter, MaskImageFilter, TextImageFilterWithExtras
+from .image_filter_nodes import ImageFilter, MaskImageFilter, TextImageFilterWithExtras, ImageFilterList
 from .utility_nodes.list_utility_nodes import PickFromList, BatchFromImageList, ImageListFromBatch
 from .utility_nodes.string_utility_nodes import SplitByCommas, StringToFloat, StringToInt, AnyListToString, StringToStringList, cg_StringToFloat, cg_StringToInt
 from .utility_nodes.mask_utility_nodes import MaskedSection
@@ -20,7 +20,7 @@ async def comfy_entrypoint() -> ComfyExtension:
     class cg_ImageFilterExtension(ComfyExtension):
         async def get_node_list(self) -> list[type[io.ComfyNode]]:
             return [
-                ImageFilter, MaskImageFilter, TextImageFilterWithExtras,
+                ImageFilter, MaskImageFilter, TextImageFilterWithExtras, ImageFilterList,
                 PickFromList, BatchFromImageList, ImageListFromBatch,
                 SplitByCommas, StringToFloat, StringToInt, AnyListToString, StringToStringList, cg_StringToFloat, cg_StringToInt,
                 MaskedSection,            
