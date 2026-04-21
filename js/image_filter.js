@@ -106,11 +106,12 @@ app.registerExtension({
                 return onConnectionsChange ? onConnectionsChange.apply(this, arguments) : undefined;
             }
         }
-        /*
-        When a node gets configured (after it is created), set the graph widget and remove any preview.
-        The base configure method sets widgets and other stuff, so call that *first*
-        */
+
         if (FILTER_TYPES.includes(nodeType.comfyClass )) {
+        /*
+            When a node gets configured, set the graph widget.
+            The base configure method sets widgets and other stuff, so call that *first*
+        */
             const configure = nodeType.prototype.configure;
             nodeType.prototype.configure = function () {
                 configure?.apply(this, arguments)
@@ -118,6 +119,9 @@ app.registerExtension({
                 if (this.type == 'Mask Image Filter') remove_preview(this.id)
             }
             const onNodeCreated = nodeType.prototype.onNodeCreated;
+        /*
+            Similarly, when a node is created.
+        */
             nodeType.prototype.onNodeCreated = function () {
                 const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
                 set_graph_id_widget(this)
