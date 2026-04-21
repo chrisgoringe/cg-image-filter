@@ -6,7 +6,7 @@ import { popup, remove_preview } from "./popup.js";
 import { graph_id_to_tab } from "./graph_map.js";
 import { Log } from "./log.js";
 
-const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
+const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter", "Image Filter for List"]
 
 const VERSION = "1.8"
 
@@ -116,6 +116,12 @@ app.registerExtension({
                 configure?.apply(this, arguments)
                 set_graph_id_widget(this)
                 if (this.type == 'Mask Image Filter') remove_preview(this.id)
+            }
+            const onNodeCreated = nodeType.prototype.onNodeCreated;
+            nodeType.prototype.onNodeCreated = function () {
+                const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
+                set_graph_id_widget(this)
+                return r
             }
         }
     },
