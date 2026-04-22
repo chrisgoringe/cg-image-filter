@@ -719,10 +719,11 @@ export function remove_preview(node_id, is_echo) {
     const node = app.canvas.graph.getNodeById(node_id)
     if (!node) return
     const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
-    if (w && !w.hidden) {
+    if (w) {
         w.hidden = true
         node.setSize( [node.size[0], node.computeSize()[1]] )
+        app.canvas.setDirty(true,true)
     } 
 
-    if (!is_echo) setTimeout(remove_preview, 100, [node_id, true])
+    if (!is_echo) setTimeout(remove_preview, 500, node_id, true)
 }
