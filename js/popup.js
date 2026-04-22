@@ -406,9 +406,7 @@ class Popup extends HTMLElement {
         } else {
             this._send_response({masked_image:this.node.images?.[0]?.filename})
         }
-
-        const the_node = this.node.id
-        setTimeout(remove_preview, 200, [the_node,])
+        remove_preview(this.node)
     }
 
     extract_filename(url_string) {
@@ -714,16 +712,14 @@ customElements.define('cg-imgae-filter-popup', Popup)
 
 export const popup = new Popup()
 
-
-export function remove_preview(node_id, is_echo) {
-    const node = app.canvas.graph.getNodeById(node_id)
-    if (!node) return
+export function remove_preview(node, previous_tries=0, delay=50) {
     const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
-    if (w) {
+    if (w && !w.hidden) {
         w.hidden = true
         node.setSize( [node.size[0], node.computeSize()[1]] )
         app.canvas.setDirty(true,true)
-    } 
-
-    if (!is_echo) setTimeout(remove_preview, 500, node_id, true)
+        console.log(`Removed preview from node ${node.id} after ${previous_tries} tries`)
+    } else {
+        if (previous_tries<6) setTimeout(remove_preview, delay, node, previous_tries+1, delay*2)
+    }
 }

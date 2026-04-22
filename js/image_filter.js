@@ -116,7 +116,7 @@ app.registerExtension({
             nodeType.prototype.configure = function () {
                 configure?.apply(this, arguments)
                 set_graph_id_widget(this)
-                if (this.type == 'Mask Image Filter') remove_preview(this.id)
+                if (this.type == 'Mask Image Filter') remove_preview(this)
             }
             const onNodeCreated = nodeType.prototype.onNodeCreated;
         /*
