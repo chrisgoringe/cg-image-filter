@@ -40,11 +40,11 @@ app.registerExtension({
             defaultValue: true
         },
         {
-            id: "Image Filter.Actions.Click Sends",
-            name: "Clicking an image sends it",
-            tooltip: "Use if you always want to send exactly one image.",
-            type: "boolean",
-            defaultValue: false
+            id: "Image Filter.Actions.Multiple Selection",
+            name: "Allow multiple images to be selected",
+            type: "combo",
+            options: [ {value:0, text:"Yes"}, {value:1, text:"No - selecting sends image"}, {value:2, text:"No - selecting unselects previous"} ],
+            default: 0,
         },
         {
             id: "Image Filter.Actions.Autosend Identical",

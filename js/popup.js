@@ -606,17 +606,25 @@ class Popup extends HTMLElement {
     }
 
     select_unselect(n) {
-        if (n<0 || n>this.n_images) {
-            return
-        }
+        if (n<0 || n>this.n_images) return
         const s = `${n}`
-        if (app.ui.settings.getSettingValue("Image Filter.Actions.Click Sends")) {
-            this.picked.add(s)
-            this._send_response()
-        } else {
-            if (this.picked.has(s)) this.picked.delete(s)
-            else this.picked.add(s)
-            this.redraw()
+
+        switch (app.ui.settings.getSettingValue("Image Filter.Actions.Multiple Selection")) {
+            case 1: // No - selecting sends image
+                this.picked.add(s)
+                this._send_response()
+                break
+            case 2: // No - selecting unselects previous
+                this.picked.clear()
+                this.picked.add(s)
+                this.redraw()
+                break
+            case 0: // Yes - allow multiple selection
+            default:
+                if (this.picked.has(s)) this.picked.delete(s)
+                else this.picked.add(s)
+                this.redraw()
+                break
         }
     }
 
