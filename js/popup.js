@@ -451,8 +451,8 @@ class Popup extends HTMLElement {
                 latestImage = create('img', null, this.grid, {src:get_full_url(url)})
                 latestImage.onload = this.layout.bind(this)
                 latestImage.image_index = i/this.video_frames
-                latestImage.addEventListener('mouseover', (e)=>this.on_mouse_enter(latestImage))
-                latestImage.addEventListener('mouseout', (e)=>this.on_mouse_out(latestImage))
+                latestImage.addEventListener('mouseover', this.on_mouse_enter.bind(this))
+                latestImage.addEventListener('mouseout', this.on_mouse_out.bind(this))
                 latestImage.frames = [get_full_url(url),]
             } else {
                 latestImage.frames.push(get_full_url(url))
@@ -484,12 +484,12 @@ class Popup extends HTMLElement {
         setTimeout(this.advance_videos.bind(this), delay)
     }
 
-    on_mouse_enter(img) {
-        this.mouse_is_over = img
+    on_mouse_enter(e) {
+        this.mouse_is_over = e.target
         this.redraw()
     }
 
-    on_mouse_out(img) {
+    on_mouse_out(e) {
         this.mouse_is_over = null
         this.redraw()       
     }
