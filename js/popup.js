@@ -252,6 +252,8 @@ class Popup extends HTMLElement {
     }
 
     find_node(uid) {
+		uid = uid.split('.').pop();
+		
         const bits = uid.split(':')
         if (bits.length==1) {
             return app.graph._nodes_by_id[uid]
