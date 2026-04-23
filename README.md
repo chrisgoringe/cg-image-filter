@@ -19,6 +19,13 @@ If you prefer trying a workflow to reading docs, use of the nodes is illustrated
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
 
+## New in 1.8 ##
+
+- Fix for mask image filter when using more than one in a workflow
+- More reliable flash on background tab
+- Better handling of filters in subgraphs
+- New option - selecting image unselects others
+
 ## New in 1.7 ##
 
 - Options for Mask Image Filter behaviour when no inpouts are changed
@@ -72,7 +79,7 @@ Video previews!
 
 - `If all images are identical, autosend one` - in the ImageFilter node, if all images are identical (including if there is just one image) then send
 an image without user interaction. 
-- `Clicking an image sends it` - In the ImageFilter node, clicking an image sends it instead of selecting it. Useful if you know you only ever want to send one image at most.
+- `Allow multiple images to be selected` - Default is yes. Alternatives are `No - selecting sends` (click an image to select and send it) or `No - selecting unselects previous` (click an image to select it and unselect previous choice).
 - `Show a small popup instead of covering the screen` - instead of taking over the whole screen immediately, display a tiny version of the image in the top left. Click that image to go into the full screen mode. You can move the tiny image window around to where you want it by dragging the title bar.
 - `Enter the Image Filter node with an image zoomed` - instead of showing the grid of images, zoom in on one. Options are `first` or `last`
 - `Play sound when activating` - play a 'ding' sound when any of the filter nodes becomes active. You can change the sound by replacing the file `ding.mp3` in the `js` subfolder.
