@@ -175,6 +175,7 @@ class TextImageFilterWithExtras(io.ComfyNode, FilterNodeBase):
                 io.String.Input("extra2", default="", optional=True),
                 io.String.Input("extra3", default="", optional=True),
                 io.Int.Input("textareaheight", default=150, min=30, max=500),
+                io.String.Input("audiofile", advanced=True, optional=True, default="", tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
                 io.String.Input("graph_id", default="")
             ],
             outputs = [
@@ -188,10 +189,18 @@ class TextImageFilterWithExtras(io.ComfyNode, FilterNodeBase):
         )
     
     @classmethod
-    def execute(cls, image, text, timeout, graph_id, extra1="", extra2="", extra3="", mask=None, tip="", textareaheight=None, **kwargs): # type: ignore
+    def execute(cls, # type: ignore
+                image, text, timeout, graph_id, extra1="", extra2="", extra3="", 
+                mask=None, tip="", textareaheight=None, audiofile="", **kwargs): # type: ignore
         if image is None: image = torch.zeros((1,64,64,3))
         urls:list[dict[str,str]] = cls.save_images_return_urls(images=image, **kwargs)
-        payload = {"urls":urls, "text":text, "extras":[extra1, extra2, extra3], "tip":tip}
+        payload = {
+            "urls":urls, 
+            "text":text, 
+            "extras":[extra1, extra2, extra3], 
+            "tip":tip, 
+            "audiopath": audiofile
+        }
         if textareaheight is not None: payload['textareaheight'] = textareaheight
         if mask is not None: payload['mask_urls'] = cls.save_images_return_urls(images=mask_to_image(mask), **kwargs)
 
@@ -260,6 +269,7 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
                 io.String.Input("extra1", default="", optional=True),
                 io.String.Input("extra2", default="", optional=True),
                 io.String.Input("extra3", default="", optional=True),
+                io.String.Input("audiofile", advanced=True, optional=True, default="", tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
                 io.String.Input("graph_id", default=""),
             ],
             hidden=[
@@ -276,11 +286,14 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
         )
 
     @classmethod
-    def execute(cls, image, timeout, if_no_mask, graph_id, if_inputs_unchanged="Run normally", mask=None, extra1="", extra2="", extra3="", tip="", **kwargs): # type: ignore
+    def execute(cls, # type: ignore
+                image, timeout, 
+                if_no_mask, graph_id, if_inputs_unchanged="Run normally", 
+                mask=None, audiofile="", extra1="", extra2="", extra3="", tip="", **kwargs): 
         iostore = InOutStore.get_store(f"{graph_id}_{cls.hidden.unique_id}")
 
         # check if everything is unchanged (and store these inputs for next check)
-        if iostore.check_input_unchanged(image, timeout, if_no_mask, graph_id, mask, extra1, extra2, extra3, tip) and iostore.last_output is not None:
+        if iostore.check_input_unchanged(image, timeout, if_no_mask, graph_id, mask, audiofile, extra1, extra2, extra3, tip) and iostore.last_output is not None:
             if if_inputs_unchanged == "Start with last output":
                 image, mask, extra1, extra2, extra3 = iostore.get_last()
                 mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
@@ -293,7 +306,13 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
             input_to_send = image
 
         urls = cls.save_images_return_urls(images=input_to_send, **kwargs)
-        payload = { "urls":urls, "maskedit":True, "extras":[extra1, extra2, extra3], "tip":tip}
+        payload = { 
+            "urls":urls, 
+            "maskedit":True, 
+            "extras":[extra1, extra2, extra3], 
+            "tip":tip, 
+            "audiopath": audiofile
+        }
         response = send_and_wait(payload, timeout, graph_id)
         
         if (response.masked_image): # old mask editor - uploads
