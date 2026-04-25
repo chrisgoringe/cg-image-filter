@@ -29,11 +29,13 @@ const State = Object.freeze({
     ZOOMED      : 5,
 })
 
+const default_audio_folder = 'extensions/cg-image-filter/audio/'
+const default_audio_file = 'ding.mp3';
+
 class Popup extends HTMLElement {
     constructor() {
         super()
-        this.audio = new Audio('extensions/cg-image-filter/ding.mp3');
-
+    
         this.classList.add('cg_popup')
         
         this.grid               = create('span', 'grid', this)
@@ -225,7 +227,26 @@ class Popup extends HTMLElement {
         this.render()
     }
 
-    maybe_play_sound() { if (app.ui.settings.getSettingValue("Image Filter.UI.Play Sound")) this.audio.play(); }
+    async maybe_play_sound() { 
+        if (app.ui.settings.getSettingValue("Image Filter.UI.Play Sound")) {
+            if (this.audiopath) {
+                if (await this.play_sound(this.audiopath) || 
+                    await this.play_sound(default_audio_folder + this.audiopath)) return
+            }
+            this.play_sound(default_audio_folder + default_audio_file)
+        }
+    }
+
+    async play_sound(path) {
+        if (!path) return false
+        try {
+            const audio = new Audio(path);
+            await audio.play()
+            return true
+        } catch (e) {
+            return false
+        }
+    }
 
     handle_message(message) { 
         Log.message_in(message)
@@ -283,6 +304,8 @@ class Popup extends HTMLElement {
         const uid = app.runningNodeId
         const the_node = this.find_node(uid)
         const graph_id = message.detail.graph_id
+
+        if (detail.audiopath) this.audiopath = detail.audiopath
 
         if (graph_id != app.graph.id) {
             this._flash_tab(message.detail.graph_id)

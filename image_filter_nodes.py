@@ -73,6 +73,7 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
                 io.Int.Input("pick_list_start", advanced=True, optional=True, default=0, tooltip="The index of the first image (normally 0 or 1)"),
                 io.String.Input("pick_list", advanced=True, optional=True, default="", tooltip="If a comma separated list of integers is provided, the images with these indices will be selected automatically."),
                 io.Int.Input("video_frames", advanced=True, optional=True, default=1, tooltip="Treat each block of n images as a video"),
+                io.String.Input("audiofile", advanced=True, optional=True, default="", tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
                 io.String.Input("graph_id", default="")
             ],
             outputs = [
@@ -107,6 +108,7 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
         graph_id:str="", 
         tip:str="", extra1:str="", extra2:str="", extra3:str="", 
         pick_list_start:int=0, pick_list:str="", video_frames:int=1,
+        audiofile:str|None="",
         **kwargs
     ) -> io.NodeOutput:
         assert images is not None, "Image Filter received None for images"
@@ -124,7 +126,14 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
         if len(images_to_return) == 0:
             all_the_same = ( B and all( (images[i]==images[0]).all() for i in range(1,B) )) 
             urls:list[dict[str,str]] = cls.save_images_return_urls(images=images, **kwargs)
-            payload = { "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip, "video_frames":video_frames }
+            payload = { 
+                "urls":urls, 
+                "allsame":all_the_same, 
+                "extras":[extra1, extra2, extra3], 
+                "tip":tip, 
+                "video_frames":video_frames,
+                "audiopath": audiofile 
+            }
 
             response:Response = send_and_wait(payload, timeout, graph_id)
             images_to_return:list[int]

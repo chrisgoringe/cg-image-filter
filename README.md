@@ -35,6 +35,10 @@ or jump down to [example workflows](#example-workflows) for more examples.
 
 # Recent Changes
 
+## New in 1.9
+
+- [Custom audio](#audiofile)
+
 ## New in 1.8
 
 - Fix for mask image filter when using more than one in a workflow
@@ -114,6 +118,16 @@ If you set this to greater than one, the image filter node will batch up each se
 Set the FPS for playback in the global settings.
 
 This is a new, experimental feature, so please report any issues...
+
+### audiofile
+
+The sound to play when the node is triggered. Can be one of the built-in options, 
+[`beep.mp3`](js/audio/beep.mp3), [`ding.mp3`](js/audio/ding.mp3), or [`honk.mp3`](js/audio/honk.mp3), 
+or the path to a local audiofile, or a URL of an audiofile.
+
+You can add files to `js/audio` and then just use their names. 
+
+If a file can't be loaded, it will fallback to `ding.mp3`
 
 ---
 
