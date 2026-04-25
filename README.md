@@ -6,6 +6,8 @@
 
 ---
 
+## Introduction 
+
 A set of nodes designed to pause execution of the workflow to allow you to make selections and/or edits before continuing.
 There's an example workflow that illustrates all of them at the end.
 
@@ -15,54 +17,6 @@ There's an example workflow that illustrates all of them at the end.
 
 There are also some helper nodes.
 
-If you prefer trying a workflow to reading docs, use of the nodes is illustrated in this blob (drag the image into Comfy):
-
-<img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
-
-## New in 1.8 ##
-
-- Fix for mask image filter when using more than one in a workflow
-- More reliable flash on background tab
-- Better handling of filters in subgraphs
-- New option - selecting image unselects others
-
-## New in 1.7 ##
-
-- Options for Mask Image Filter behaviour when no inpouts are changed
-- Fixed several bugs in Mask Image Filter
-- Updated to use new Comfy UI node specification
-- Added typing shortcuts
-
-## New in 1.6.4 ##
-
-- Small window now has a button that can be used to hide/show the main window, allowing you to view the workflow 
-
-## New in 1.6 ##
-
-- `Masked Section` node to crop images to just the masked area
-
-## New in 1.5 ##
-
-- Floating window for extras and tips
-- Mask editor node now has option for text extras
-- Keyboard and mouse navigation in zoomed view
-
-## New in 1.4 ##
-
-Video previews!
-
-## New in 1.3.2 ##
-
-- works with old mask editor as well
-- keyboard shortcuts are back
-- various minor fixes
-
-## New in 1.3 ##
-
-- pick_list to automatically select images in `Image Filter`
-- optional initial mask input to `Mask Image Filter`
-
-
 ## Examples of what you might do with them
 
 - Generate an image or batch, and select which ones you want before spending the time upscaling
@@ -71,38 +25,35 @@ Video previews!
 - Iterate through a folder of images, picking a masked area to inpaint (and the inpainting prompt) for each
 - you ideas here...
 
----
+## Example workflow
 
-## Global Options
+If you prefer trying a workflow to reading docs, use of the nodes is illustrated in this blob (drag the image into Comfy):
 
-![image](images/options.png)
+<img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
 
-- `If all images are identical, autosend one` - in the ImageFilter node, if all images are identical (including if there is just one image) then send
-an image without user interaction. 
-- `Allow multiple images to be selected` - Default is yes. Alternatives are `No - selecting sends` (click an image to select and send it) or `No - selecting unselects previous` (click an image to select it and unselect previous choice).
-- `Show a small popup instead of covering the screen` - instead of taking over the whole screen immediately, display a tiny version of the image in the top left. Click that image to go into the full screen mode. You can move the tiny image window around to where you want it by dragging the title bar.
-- `Enter the Image Filter node with an image zoomed` - instead of showing the grid of images, zoom in on one. Options are `first` or `last`
-- `Play sound when activating` - play a 'ding' sound when any of the filter nodes becomes active. You can change the sound by replacing the file `ding.mp3` in the `js` subfolder.
-- `Video Frames per Second` - when previewing vidoe(s), try to play them at this speed
+or jump down to [example workflows](#example-workflows) for more examples.
 
----
+# Recent Changes
 
-## Keyboard shortcuts
+## New in 1.8
 
-In `Image Filter` and `Text Image Filter` (not `Mask Image Filter`)
+- Fix for mask image filter when using more than one in a workflow
+- More reliable flash on background tab
+- Better handling of filters in subgraphs
+- New option - selecting image unselects others
 
-- `Space` when hovering over an image enlarges it. See `Zoom` in the `Image Filter` section below.
-- `Escape` to click the cancel button
-- `Enter`to click the send button
-- digits `0`, `1`, etc. to click an image (zero-indexed) (select/deselect or send, depending on the value of `ClickSends`)
+## New in 1.7
 
-In `Image Filter` only
+- Options for Mask Image Filter behaviour when no inpouts are changed
+- Fixed several bugs in Mask Image Filter
+- Updated to use new Comfy UI node specification
+- Added typing shortcuts
 
-- `ctrl-A` to select/unselect all images
+For older changes see [Change History](#change-history)
 
 ---
 
-## Image Filter
+# Image Filter
 
 The image filter node pauses execution of the workflow while you choose which, if any, of the images produced, you want to progress.
 
@@ -166,7 +117,7 @@ This is a new, experimental feature, so please report any issues...
 
 ---
 
-## Mask Image Filter
+# Mask Image Filter
 
 Designed for a single image, when executed the Mask Image Filter node will automatically launch the mask editor. 
 
@@ -192,7 +143,7 @@ There is an optional mask input (added in 1.3), which allows you to specify the 
 
 ---
 
-## Text Image Filter
+# Text Image Filter
 
 Also designed for a single image, this node will show the image and a string of text; you can edit the text and then press send. 
 
@@ -207,9 +158,36 @@ Typing shortcuts. If you find you often use the same text in the `text` field, y
 
 ---
 
-# A few more things
+# Global Options
 
-## Extras
+![image](images/options.png)
+
+- `If all images are identical, autosend one` - in the ImageFilter node, if all images are identical (including if there is just one image) then send
+an image without user interaction. 
+- `Allow multiple images to be selected` - Default is yes. Alternatives are `No - selecting sends` (click an image to select and send it) or `No - selecting unselects previous` (click an image to select it and unselect previous choice).
+- `Show a small popup instead of covering the screen` - instead of taking over the whole screen immediately, display a tiny version of the image in the top left. Click that image to go into the full screen mode. You can move the tiny image window around to where you want it by dragging the title bar.
+- `Enter the Image Filter node with an image zoomed` - instead of showing the grid of images, zoom in on one. Options are `first` or `last`
+- `Play sound when activating` - play a 'ding' sound when any of the filter nodes becomes active. You can change the sound by replacing the file `ding.mp3` in the `js` subfolder.
+- `Video Frames per Second` - when previewing vidoe(s), try to play them at this speed
+
+---
+
+# Keyboard shortcuts
+
+In `Image Filter` and `Text Image Filter` (not `Mask Image Filter`)
+
+- `Space` when hovering over an image enlarges it. See `Zoom` in the `Image Filter` section below.
+- `Escape` to click the cancel button
+- `Enter`to click the send button
+- digits `0`, `1`, etc. to click an image (zero-indexed) (select/deselect or send, depending on the value of `ClickSends`)
+
+In `Image Filter` only
+
+- `ctrl-A` to select/unselect all images
+
+---
+
+# Extra text outputs
 
 'Text Image Filter' and 'Image Filter', each provide three extra text fields, intended for short form - like specifying the denoising you want on the next step, or a prefix to save the file with.
 
@@ -217,16 +195,16 @@ If you use the optional 'tip' input, the contents will be displayed under the ex
 
 ---
 
-## Helper Nodes
+# Helper Nodes
 
-### Masked Section
+## Masked Section
 
 `Masked Section` takes a mask and a (batch of) images and outputs the images cropped to the bounding box of the mask (with a minimum size). 
 Here's how you might use it to preview the parts of the image that were changed in img2img (also using `Pick from List` and `Image List from Batch` described below)
 
 ![masked preview](images/maskedsection.png)
 
-### String handling
+## String handling
 
 - `Split String by Commas` allows you to split a text string into up to five pieces, splitting on `,`, `|`, or `^`. It also strips whitespace, so that the strings can be easily parsed, especially by...
 - `String to Int` and `String to Float` convert a string to an int or a float, with a fallback default 
@@ -239,7 +217,7 @@ Together, these nodes allow you to specify lots of information in the `extras` f
 
 There is also a sixth output which is a list of all the strings.
 
-### List and Batch Handling
+## List and Batch Handling
 
 **When working with multiple images** - `Image Filter` expects a batch, `Mask Image Filter` and `Text Image Filter` need a list.
 
@@ -257,11 +235,9 @@ So something like this:
 
 ![image](images/fromlist.png)
 
-
-
 ---
 
-# Example Workflow
+# Example Workflows
 
 ![image](images/three%20filters.png)
 
@@ -276,6 +252,9 @@ The workflow is embedded in the blob in a bottle:
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
 
+---
+
+
 # Bugs, Ideas, and the future
 
 Take a look at the [issues list](https://github.com/chrisgoringe/cg-image-filter/issues) to see what I'm thinking of,
@@ -284,3 +263,37 @@ to report problems, or to make suggestions.
 ## How to report a bug well
 
 Please read [this guide](https://github.com/chrisgoringe/cg-image-filter/discussions/60) before you post a bug!
+
+---
+
+# Change history
+
+
+## New in 1.6.4 ##
+
+- Small window now has a button that can be used to hide/show the main window, allowing you to view the workflow 
+
+## New in 1.6 ##
+
+- `Masked Section` node to crop images to just the masked area
+
+## New in 1.5 ##
+
+- Floating window for extras and tips
+- Mask editor node now has option for text extras
+- Keyboard and mouse navigation in zoomed view
+
+## New in 1.4 ##
+
+Video previews!
+
+## New in 1.3.2 ##
+
+- works with old mask editor as well
+- keyboard shortcuts are back
+- various minor fixes
+
+## New in 1.3 ##
+
+- pick_list to automatically select images in `Image Filter`
+- optional initial mask input to `Mask Image Filter`
