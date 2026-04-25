@@ -3,12 +3,12 @@ import { api } from "../../scripts/api.js";
 
 import { create } from "./utils.js";
 import { popup, remove_preview } from "./popup.js";
-import { graph_id_to_tab } from "./weak_map.js";
+import { graph_id_to_tab } from "./graph_map.js";
 import { Log } from "./log.js";
 
-const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter"]
+const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter", "Image Filter for List"]
 
-const VERSION = "1.7"
+const VERSION = "1.8"
 
 app.registerExtension({
 	name: "cg.image_filter",
@@ -40,11 +40,11 @@ app.registerExtension({
             defaultValue: true
         },
         {
-            id: "Image Filter.Actions.Click Sends",
-            name: "Clicking an image sends it",
-            tooltip: "Use if you always want to send exactly one image.",
-            type: "boolean",
-            defaultValue: false
+            id: "Image Filter.Actions.Multiple Selection",
+            name: "Allow multiple images to be selected",
+            type: "combo",
+            options: [ {value:0, text:"Yes"}, {value:1, text:"No - selecting sends image"}, {value:2, text:"No - selecting unselects previous"} ],
+            default: 0,
         },
         {
             id: "Image Filter.Actions.Autosend Identical",
@@ -106,37 +106,38 @@ app.registerExtension({
                 return onConnectionsChange ? onConnectionsChange.apply(this, arguments) : undefined;
             }
         }
+
         if (FILTER_TYPES.includes(nodeType.comfyClass )) {
-            const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function () {
+        /*
+            When a node gets configured, set the graph widget.
+            The base configure method sets widgets and other stuff, so call that *first*
+        */
+            const configure = nodeType.prototype.configure;
+            nodeType.prototype.configure = function () {
+                configure?.apply(this, arguments)
                 set_graph_id_widget(this)
-                return onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
+                if (this.type == 'Mask Image Filter') remove_preview(this)
+            }
+            const onNodeCreated = nodeType.prototype.onNodeCreated;
+        /*
+            Similarly, when a node is created.
+        */
+            nodeType.prototype.onNodeCreated = function () {
+                const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
+                set_graph_id_widget(this)
+                return r
             }
         }
     },
 
-    afterConfigureGraph() {
-        setTimeout( afterConfigure, 100 )
-        link_to_tab(3)
-    }
+    afterConfigureGraph() { link_to_tab(3) }
 })
-
-function afterConfigure() {
-    app.graph.nodes.forEach( (node) => {
-            if (FILTER_TYPES.includes(node.type)) {
-                set_graph_id_widget(node)
-            }
-            set_graph_id_widget(node)
-            if (node.type == 'Mask Image Filter') remove_preview(node.id)
-        }
-    )
-}
 
 function set_graph_id_widget(node) {
     const graph_id_widget = node.widgets?.find((n)=>n.name=='graph_id')
     if (graph_id_widget) {
         graph_id_widget.hidden = true
-        graph_id_widget.value = `${app.graph.id}`     // app.graph.id is unique per tab, regardless of subgraph
+        graph_id_widget.value = `${app.graph.id}`
         graph_id_widget.computeSize = () => [0,0]  
     }
 }

@@ -5,7 +5,7 @@ import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, p
 import { Log } from "./log.js";
 import { create } from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
-import { graph_id_to_tab } from "./weak_map.js";
+import { graph_id_to_tab } from "./graph_map.js";
 
 //const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
 const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras",]
@@ -398,12 +398,17 @@ class Popup extends HTMLElement {
         if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
         } else {
-            const masked_image = this.node.imgs?.[0]?.src ? this.extract_filename(this.node.imgs[0].src) : this.node.images?.[0]?.filename
-            this._send_response({masked_image:masked_image})
-
-            const the_node = this.node.id
-            setTimeout(remove_preview, 500, [the_node,])
+            setTimeout(this.when_mask_editor_closes.bind(this), 300) // allow a pause to make sure the mask editor has saved the image to the node
         } 
+    }
+
+    when_mask_editor_closes() {
+        if (this.node.imgs?.[0]?.src) {
+            this._send_response({masked_image:this.extract_filename(this.node.imgs[0].src)})
+        } else {
+            this._send_response({masked_image:this.node.images?.[0]?.filename})
+        }
+        remove_preview(this.node)
     }
 
     extract_filename(url_string) {
@@ -446,8 +451,8 @@ class Popup extends HTMLElement {
                 latestImage = create('img', null, this.grid, {src:get_full_url(url)})
                 latestImage.onload = this.layout.bind(this)
                 latestImage.image_index = i/this.video_frames
-                latestImage.addEventListener('mouseover', (e)=>this.on_mouse_enter(latestImage))
-                latestImage.addEventListener('mouseout', (e)=>this.on_mouse_out(latestImage))
+                latestImage.addEventListener('mouseover', this.on_mouse_enter.bind(this))
+                latestImage.addEventListener('mouseout', this.on_mouse_out.bind(this))
                 latestImage.frames = [get_full_url(url),]
             } else {
                 latestImage.frames.push(get_full_url(url))
@@ -479,12 +484,12 @@ class Popup extends HTMLElement {
         setTimeout(this.advance_videos.bind(this), delay)
     }
 
-    on_mouse_enter(img) {
-        this.mouse_is_over = img
+    on_mouse_enter(e) {
+        this.mouse_is_over = e.target
         this.redraw()
     }
 
-    on_mouse_out(img) {
+    on_mouse_out(e) {
         this.mouse_is_over = null
         this.redraw()       
     }
@@ -601,17 +606,25 @@ class Popup extends HTMLElement {
     }
 
     select_unselect(n) {
-        if (n<0 || n>this.n_images) {
-            return
-        }
+        if (n<0 || n>this.n_images) return
         const s = `${n}`
-        if (app.ui.settings.getSettingValue("Image Filter.Actions.Click Sends")) {
-            this.picked.add(s)
-            this._send_response()
-        } else {
-            if (this.picked.has(s)) this.picked.delete(s)
-            else this.picked.add(s)
-            this.redraw()
+
+        switch (app.ui.settings.getSettingValue("Image Filter.Actions.Multiple Selection")) {
+            case 1: // No - selecting sends image
+                this.picked.add(s)
+                this._send_response()
+                break
+            case 2: // No - selecting unselects previous
+                this.picked.clear()
+                this.picked.add(s)
+                this.redraw()
+                break
+            case 0: // Yes - allow multiple selection
+            default:
+                if (this.picked.has(s)) this.picked.delete(s)
+                else this.picked.add(s)
+                this.redraw()
+                break
         }
     }
 
@@ -709,15 +722,14 @@ customElements.define('cg-imgae-filter-popup', Popup)
 
 export const popup = new Popup()
 
-
-export function remove_preview(node_id, is_echo) {
-    const node = app.canvas.graph.getNodeById(node_id)
-    if (!node) return
+export function remove_preview(node, previous_tries=0, delay=50) {
     const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
     if (w && !w.hidden) {
         w.hidden = true
         node.setSize( [node.size[0], node.computeSize()[1]] )
-    } 
-
-    if (!is_echo) setTimeout(remove_preview, 100, [node_id, true])
+        app.canvas.setDirty(true,true)
+        console.log(`Removed preview from node ${node.id} after ${previous_tries} tries`)
+    } else {
+        if (previous_tries<6) setTimeout(remove_preview, delay, node, previous_tries+1, delay*2)
+    }
 }
