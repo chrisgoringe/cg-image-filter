@@ -70,9 +70,9 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
                 io.String.Input("extra1", default="", optional=True),
                 io.String.Input("extra2", default="", optional=True),
                 io.String.Input("extra3", default="", optional=True),
-                io.Int.Input("pick_list_start", optional=True, default=0, tooltip="The index of the first image (normally 0 or 1)"),
-                io.String.Input("pick_list", optional=True, default="", tooltip="If a comma separated list of integers is provided, the images with these indices will be selected automatically."),
-                io.Int.Input("video_frames", optional=True, default=1, tooltip="Treat each block of n images as a video"),
+                io.Int.Input("pick_list_start", advanced=True, optional=True, default=0, tooltip="The index of the first image (normally 0 or 1)"),
+                io.String.Input("pick_list", advanced=True, optional=True, default="", tooltip="If a comma separated list of integers is provided, the images with these indices will be selected automatically."),
+                io.Int.Input("video_frames", advanced=True, optional=True, default=1, tooltip="Treat each block of n images as a video"),
                 io.String.Input("graph_id", default="")
             ],
             outputs = [
