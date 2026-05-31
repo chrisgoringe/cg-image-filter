@@ -13,7 +13,7 @@ from comfy_api.latest import ComfyExtension, io
 
 from .image_filter_nodes import ImageFilter, MaskImageFilter, TextImageFilter
 from .utility_nodes.list_utility_nodes import PickFromList, BatchFromImageList, ImageListFromBatch
-from .utility_nodes.string_utility_nodes import SplitByCommas, StringToFloat, StringToInt, AnyListToString, StringToStringList, cg_StringToFloat, cg_StringToInt
+from .utility_nodes.string_utility_nodes import SplitByCommas, AnyListToString, StringToStringList, StringToFloat, StringToInt
 from .utility_nodes.mask_utility_nodes import MaskedSection
 
 async def comfy_entrypoint() -> ComfyExtension:
@@ -22,7 +22,7 @@ async def comfy_entrypoint() -> ComfyExtension:
             return [
                 ImageFilter, MaskImageFilter, TextImageFilter,
                 PickFromList, BatchFromImageList, ImageListFromBatch,
-                SplitByCommas, StringToFloat, StringToInt, AnyListToString, StringToStringList, cg_StringToFloat, cg_StringToInt,
+                SplitByCommas, AnyListToString, StringToStringList, StringToFloat, StringToInt,
                 MaskedSection,            
             ]
         

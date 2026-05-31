@@ -2,7 +2,15 @@
 
 ---
 
-**If you are reporting a bug, please read [how to report a bug well](#how-to-report-a-bug-well) first!**
+# Problems?
+
+If you have issues after an update, try removing the filter node and then adding it back before reporting it as a bug.
+
+If you use the `String to Int` or `String to Float` nodes and get an error reporting that the nodes don't exist, 
+delete them and add them again. Due to a conflict in naming with other popula node packs they have had an id change.
+
+**Please read [how to report a bug well](#how-to-report-a-bug-well) before reporting a bug. I'm far, far more likely
+to be able to fix things if you give me the information requested.**
 
 ---
 
@@ -39,18 +47,19 @@ or jump down to [example workflows](#example-workflows) for more examples.
 
 - [Custom audio](#audiofile)
 - triple-click in text field in `TextImageFilter` to insert last sent text
+- added option in `Mask Image Filter` to 
 
 ## New in 1.8
 
-- Fix for mask image filter when using more than one in a workflow
+- Fix for `Mask Image Filter` when using more than one in a workflow
 - More reliable flash on background tab
 - Better handling of filters in subgraphs
 - New option - selecting image unselects others
 
 ## New in 1.7
 
-- Options for Mask Image Filter behaviour when no inpouts are changed
-- Fixed several bugs in Mask Image Filter
+- Options for `Mask Image Filter` behaviour when no inputs are changed
+- Fixed several bugs in `Mask Image Filter`
 - Updated to use new Comfy UI node specification
 - Added typing shortcuts
 
@@ -146,15 +155,23 @@ mask the bit you don't like, before doing an img2img step.
 Again, there is a timeout, and if you don't save a mask before the end of the timeout (or if you press the cancel button in the mask editor), 
 it will either cancel, or send a blank mask, depending on the option chosen.
 
-### Mask in
+## Mask in
 
-There is an optional mask input (added in 1.3), which allows you to specify the mask when the editor is launched:
+There is an optional mask input, which allows you to specify the mask when the editor is launched:
 
 ![mask in](images/maskin.png)
 
 **Note that the Mask Image Filter works with the new Mask Editor; it does not work with the old one**
 
 ![img](images/editorchoice.png)
+
+## If inputs unchanged
+
+There are four options for what to do if the inputs are exactly the same as before:
+- `Run normally`: use the input mask, if any, as the starting point
+- `Start with last output`: use the last mask sent as the starting point
+- `Resend last output`: don't launch the editor, just resend the output
+- `Always start with last output`: use the last mask sent even if the inputs have changed, as long as the image dimensions are the same
 
 ---
 
@@ -164,28 +181,28 @@ Also designed for a single image, this node will show the image and a string of 
 
 ![text](images/text.png)
 
-The image and (edited) text are output. The intended use is for captioning workflows; you can read and edit each caption as it is
+The image and (edited) text are output. One example use is for captioning workflows; you can read and edit each caption as it is
 generated. Here's a trivial workflow:
 
 ![text workflow](images/text%20workflow.png)
 
-Typing shortcuts. If you find you often use the same text in the `text` field, you can create shortcuts in the `tip` by enclosing them `{{ like this }}`.
-
-If you triple-click in the text area, it will replace the contents with the text from the previous run (useful if you are tweaking the text for the same image)
-
+If you triple-click in the text area, it will replace the contents with the text from the previous run (useful if you are tweaking a prompt for the I2I
 ---
 
 # Global Options
 
 ![image](images/options.png)
 
-- `If all images are identical, autosend one` - in the ImageFilter node, if all images are identical (including if there is just one image) then send
-an image without user interaction. 
-- `Allow multiple images to be selected` - Default is yes. Alternatives are `No - selecting sends` (click an image to select and send it) or `No - selecting unselects previous` (click an image to select it and unselect previous choice).
+- `If all images are identical, autosend one` - in the `Image Filter` node, 
+if all images are identical (including if there is just one image) then send an image without user interaction. 
+- `Allow multiple images to be selected` - 
+Default is `Yes`, which allows the `Image Filter` node to pass multiple images from a batch through. 
+Alternatives are `No - selecting sends` (click an image to select and send it) 
+or `No - selecting unselects previous` (click an image to select it and unselect previous choice).
 - `Show a small popup instead of covering the screen` - instead of taking over the whole screen immediately, display a tiny version of the image in the top left. Click that image to go into the full screen mode. You can move the tiny image window around to where you want it by dragging the title bar.
 - `Enter the Image Filter node with an image zoomed` - instead of showing the grid of images, zoom in on one. Options are `first` or `last`
 - `Play sound when activating` - play a 'ding' sound when any of the filter nodes becomes active. You can change the sound by replacing the file `ding.mp3` in the `js` subfolder.
-- `Video Frames per Second` - when previewing vidoe(s), try to play them at this speed
+- `Video Frames per Second` - when previewing video(s), try to play them at this speed
 
 ---
 
@@ -204,11 +221,13 @@ In `Image Filter` only
 
 ---
 
-# Extra text outputs
+# A few bits and pieces
 
-'Text Image Filter' and 'Image Filter', each provide three extra text fields, intended for short form - like specifying the denoising you want on the next step, or a prefix to save the file with.
+`Text Image Filter` and `Image Filter` each provide three extra text fields, intended for short form - like specifying the denoising you want on the next step, or a prefix to save the file with.
 
-If you use the optional 'tip' input, the contents will be displayed under the extras input fields, so you can remind yourself what they are for!
+If you use the optional `tip` input, the contents will be displayed under the extras input fields, so you can remind yourself what they are for! In the `Text Image Filter` you can use the format `{{text}}` in the tip to create a clickable link which will insert `text` at the end of the text field - useful for phrases you use a lot!
+
+The floating window that displays the controls takes its name from the name of the node, which can be useful for reminding yourself where you are in a complex workflow.
 
 ---
 
@@ -223,8 +242,10 @@ Here's how you might use it to preview the parts of the image that were changed 
 
 ## String handling
 
-- `Split String by Commas` allows you to split a text string into up to five pieces, splitting on `,`, `|`, or `^`. It also strips whitespace, so that the strings can be easily parsed, especially by...
-- `String to Int` and `String to Float` convert a string to an int or a float, with a fallback default 
+- `Split String on Character` allows you to split a text string into up to five pieces, splitting on a character of your choice.
+It outputs the first five non-blank values when split, and a list with all the non-blank values.
+It also strips whitespace, so that the strings can be easily parsed, especially by...
+- `String to Int` and `String to Float` convert a string to an int or a float, with a fallback default. 
 
 Together, these nodes allow you to specify lots of information in the `extras` fields. For instance, if doing an inpaint, you might have an extras field that takes the format `0.4, 20` meaning 'denoise 0.4, 20 steps'. Split the string, feed the pieces into the converters, and feed that into other nodes. Like this:
 
@@ -233,6 +254,8 @@ Together, these nodes allow you to specify lots of information in the `extras` f
 `Split String by Commas` produces five string outputs. If there are fewer than five terms, the extra ones will havee an empty string; if there are more than five terms the fifth output will be a comma separated list of the fifth and subsequent terms.
 
 There is also a sixth output which is a list of all the strings.
+
+`Any List to String` does what it says - takes any list and converts it into a single string. Probably of very limited use!
 
 ## List and Batch Handling
 
@@ -256,6 +279,8 @@ So something like this:
 
 # Example Workflows
 
+## Basic use of all three nodes
+
 ![image](images/three%20filters.png)
 
 This workflow:
@@ -268,6 +293,10 @@ This workflow:
 The workflow is embedded in the blob in a bottle:
 
 <img src="https://github.com/chrisgoringe/cg-image-filter/raw/main/images/blob.png" alt="Seahorse" width="200" height="200">
+
+## More examples to come!
+
+Feel free to send me examples of how you use the nodes!
 
 ---
 
