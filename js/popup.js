@@ -29,11 +29,15 @@ const State = Object.freeze({
     ZOOMED      : 5,
 })
 
+const default_audio_folder = 'extensions/cg-image-filter/audio/'
+const default_audio_file = 'ding.mp3';
+
+const stored_texts = {}
+
 class Popup extends HTMLElement {
     constructor() {
         super()
-        this.audio = new Audio('extensions/cg-image-filter/ding.mp3');
-
+    
         this.classList.add('cg_popup')
         
         this.grid               = create('span', 'grid', this)
@@ -84,6 +88,10 @@ class Popup extends HTMLElement {
 
         this.text_edit = create('textarea', 'text_edit row', this.floating_window.body)
         this.text_edit.id = 'text_edit'
+        
+        this.text_edit.addEventListener('click', (e)=>{ 
+            if (e.detail==3) { this.text_edit.value = this.retrieve_text() }
+        })
 
         this.picked = new Set()
     
@@ -96,6 +104,10 @@ class Popup extends HTMLElement {
         this.hidden_by_toggle = false
         this.render()
     }
+
+    unique_id() { return `${app.graph.id}:${this.node?.id}` }
+    store_text(text) { stored_texts[this.unique_id()] = text }
+    retrieve_text() { return stored_texts[this.unique_id()] || "" }
 
     toggleHide() {
         this.hidden_by_toggle = !this.hidden_by_toggle
@@ -186,8 +198,15 @@ class Popup extends HTMLElement {
                 msg.extras = []
                 Array.from(this.extras_row.children).forEach((e)=>{ msg.extras.push(e.value) })
             }
-            if (this.state==State.FILTER || this.state==State.ZOOMED) msg.selection = Array.from(this.picked)
-            if (this.state==State.TEXT) msg.text = this.text_edit.value
+
+            if (this.state==State.FILTER || this.state==State.ZOOMED) {
+                msg.selection = Array.from(this.picked)
+            }
+            
+            if (this.state==State.TEXT) {
+                msg.text = this.text_edit.value
+                this.store_text(msg.text)
+            }
             
             this.last_response_sent = Date.now()
         }
@@ -225,7 +244,26 @@ class Popup extends HTMLElement {
         this.render()
     }
 
-    maybe_play_sound() { if (app.ui.settings.getSettingValue("Image Filter.UI.Play Sound")) this.audio.play(); }
+    async maybe_play_sound() { 
+        if (app.ui.settings.getSettingValue("Image Filter.UI.Play Sound")) {
+            if (this.audiopath) {
+                if (await this.play_sound(this.audiopath) || 
+                    await this.play_sound(default_audio_folder + this.audiopath)) return
+            }
+            this.play_sound(default_audio_folder + default_audio_file)
+        }
+    }
+
+    async play_sound(path) {
+        if (!path) return false
+        try {
+            const audio = new Audio(path);
+            await audio.play()
+            return true
+        } catch (e) {
+            return false
+        }
+    }
 
     handle_message(message) { 
         Log.message_in(message)
@@ -281,11 +319,19 @@ class Popup extends HTMLElement {
     _handle_message(message, using_saved) {
         const detail = message.detail
         const uid = app.runningNodeId
+
+        if (!uid) {
+            Log.log("Workflow isn't running")
+            return
+        }
+
         const the_node = this.find_node(uid)
         const graph_id = message.detail.graph_id
 
+        if (detail.audiopath) this.audiopath = detail.audiopath
+
         if (graph_id != app.graph.id) {
-            this._flash_tab(message.detail.graph_id)
+            this._flash_tab(graph_id)
             Log.detail(`Message for different tab`)
             return
         }

@@ -52,9 +52,11 @@ class FilterNodeBase:
     @classmethod
     def stack_masks(cls, masks:torch.Tensor|None, images_to_return:list[int]) -> torch.Tensor|None:
         return cls.stack_images(masks, images_to_return)
+    
+    @classmethod
+    def fingerprint_inputs(cls, **kwargs) -> Any: return random.random()
 
-
-class ImageFilter(io.ComfyNode, FilterNodeBase):
+class ImageFilter(FilterNodeBase, io.ComfyNode):
     @classmethod
     def define_schema(cls):
         return io.Schema(
@@ -70,9 +72,10 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
                 io.String.Input("extra1", default="", optional=True),
                 io.String.Input("extra2", default="", optional=True),
                 io.String.Input("extra3", default="", optional=True),
-                io.Int.Input("pick_list_start", optional=True, default=0, tooltip="The index of the first image (normally 0 or 1)"),
-                io.String.Input("pick_list", optional=True, default="", tooltip="If a comma separated list of integers is provided, the images with these indices will be selected automatically."),
-                io.Int.Input("video_frames", optional=True, default=1, tooltip="Treat each block of n images as a video"),
+                io.Int.Input("pick_list_start", advanced=True, optional=True, default=0, tooltip="The index of the first image (normally 0 or 1)"),
+                io.String.Input("pick_list", advanced=True, optional=True, default="", tooltip="If a comma separated list of integers is provided, the images with these indices will be selected automatically."),
+                io.Int.Input("video_frames", advanced=True, optional=True, default=1, tooltip="Treat each block of n images as a video"),
+                io.String.Input("audiofile", advanced=True, optional=True, default="", tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
                 io.String.Input("graph_id", default="")
             ],
             outputs = [
@@ -107,6 +110,7 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
         graph_id:str="", 
         tip:str="", extra1:str="", extra2:str="", extra3:str="", 
         pick_list_start:int=0, pick_list:str="", video_frames:int=1,
+        audiofile:str|None="",
         **kwargs
     ) -> io.NodeOutput:
         assert images is not None, "Image Filter received None for images"
@@ -124,7 +128,14 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
         if len(images_to_return) == 0:
             all_the_same = ( B and all( (images[i]==images[0]).all() for i in range(1,B) )) 
             urls:list[dict[str,str]] = cls.save_images_return_urls(images=images, **kwargs)
-            payload = { "urls":urls, "allsame":all_the_same, "extras":[extra1, extra2, extra3], "tip":tip, "video_frames":video_frames }
+            payload = { 
+                "urls":urls, 
+                "allsame":all_the_same, 
+                "extras":[extra1, extra2, extra3], 
+                "tip":tip, 
+                "video_frames":video_frames,
+                "audiopath": audiofile 
+            }
 
             response:Response = send_and_wait(payload, timeout, graph_id)
             images_to_return:list[int]
@@ -149,7 +160,7 @@ class ImageFilter(io.ComfyNode, FilterNodeBase):
                 
         return io.NodeOutput(images, latents, masks, e1, e2, e3, ",".join(str(x+pick_list_start) for x in images_to_return))
     
-class TextImageFilterWithExtras(io.ComfyNode, FilterNodeBase):
+class TextImageFilter(FilterNodeBase, io.ComfyNode):
 
     @classmethod
     def define_schema(cls):
@@ -166,6 +177,7 @@ class TextImageFilterWithExtras(io.ComfyNode, FilterNodeBase):
                 io.String.Input("extra2", default="", optional=True),
                 io.String.Input("extra3", default="", optional=True),
                 io.Int.Input("textareaheight", default=150, min=30, max=500),
+                io.String.Input("audiofile", advanced=True, optional=True, default="", tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
                 io.String.Input("graph_id", default="")
             ],
             outputs = [
@@ -179,10 +191,18 @@ class TextImageFilterWithExtras(io.ComfyNode, FilterNodeBase):
         )
     
     @classmethod
-    def execute(cls, image, text, timeout, graph_id, extra1="", extra2="", extra3="", mask=None, tip="", textareaheight=None, **kwargs): # type: ignore
+    def execute(cls, # type: ignore
+                image, text, timeout, graph_id, extra1="", extra2="", extra3="", 
+                mask=None, tip="", textareaheight=None, audiofile="", **kwargs): # type: ignore
         if image is None: image = torch.zeros((1,64,64,3))
         urls:list[dict[str,str]] = cls.save_images_return_urls(images=image, **kwargs)
-        payload = {"urls":urls, "text":text, "extras":[extra1, extra2, extra3], "tip":tip}
+        payload = {
+            "urls":urls, 
+            "text":text, 
+            "extras":[extra1, extra2, extra3], 
+            "tip":tip, 
+            "audiopath": audiofile
+        }
         if textareaheight is not None: payload['textareaheight'] = textareaheight
         if mask is not None: payload['mask_urls'] = cls.save_images_return_urls(images=mask_to_image(mask), **kwargs)
 
@@ -191,7 +211,6 @@ class TextImageFilterWithExtras(io.ComfyNode, FilterNodeBase):
             return io.NodeOutput(image, text, extra1, extra2, extra3)
 
         return io.NodeOutput(image, response.text, *response.get_extras((extra1, extra2, extra3)))
-    
 
 def mask_to_image(mask:torch.Tensor):
     return torch.stack([mask, mask, mask, 1.0-mask], -1)
@@ -221,21 +240,29 @@ class InOutStore:
     def get_last(self) -> tuple[torch.Tensor, torch.Tensor|None, str, str, str]:
         assert self.last_output is not None, "No last output stored"
         return self.last_output
+    
+    def update_last(self, *args):
+        def make_copy(x): return x.clone() if isinstance(x, torch.Tensor) else x
+        self.previous_inputs = [ make_copy(x) for x in args ]
 
     def check_input_unchanged(self, *args) -> bool:
-        def make_copy(x): return x.clone() if isinstance(x, torch.Tensor) else x
-        try:
-            if len(self.previous_inputs)!=len(args): return False
-            for prev, new in zip(self.previous_inputs, args):
-                if isinstance(prev, torch.Tensor) and isinstance(new, torch.Tensor):
-                    if not torch.equal(prev, new): return False
-                else:
-                    if prev != new: return False
-            return True
-        finally:
-            self.previous_inputs = [ make_copy(x) for x in args ]
+        if len(self.previous_inputs)!=len(args): return False
+        for prev, new in zip(self.previous_inputs, args):
+            if isinstance(prev, torch.Tensor) and isinstance(new, torch.Tensor):
+                if not torch.equal(prev, new): return False
+            else:
+                if prev != new: return False
+        return True
+
+    def check_input_tensors_congruent(self, *args) -> bool:
+        if len(self.previous_inputs)!=len(args): return False
+        for prev, new in zip(self.previous_inputs, args):
+            if isinstance(prev, torch.Tensor) and isinstance(new, torch.Tensor):
+                if prev.shape != new.shape: return False
+        return True
+
     
-class MaskImageFilter(io.ComfyNode, FilterNodeBase):
+class MaskImageFilter(FilterNodeBase, io.ComfyNode):
     @classmethod
     def define_schema(cls):
         return io.Schema(
@@ -245,12 +272,13 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
                 io.Image.Input("image"),
                 io.Int.Input("timeout", default=600, min=1, max=1000000, tooltip="timeout in seconds"),
                 io.Combo.Input("if_no_mask", options=["cancel", "send blank"], default="send blank"),
-                io.Combo.Input("if_inputs_unchanged", options=["Run normally", "Start with last output", "Resend last output"], default="Run normally"),
+                io.Combo.Input("if_inputs_unchanged", options=["Run normally", "Start with last output", "Resend last output", "Always start with last output"], default="Run normally"),
                 io.Mask.Input("mask", optional=True, tooltip="optional"),
                 io.String.Input("tip", default="", optional=True),
                 io.String.Input("extra1", default="", optional=True),
                 io.String.Input("extra2", default="", optional=True),
                 io.String.Input("extra3", default="", optional=True),
+                io.String.Input("audiofile", advanced=True, optional=True, default="", tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
                 io.String.Input("graph_id", default=""),
             ],
             hidden=[
@@ -267,16 +295,26 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
         )
 
     @classmethod
-    def execute(cls, image, timeout, if_no_mask, graph_id, if_inputs_unchanged="Run normally", mask=None, extra1="", extra2="", extra3="", tip="", **kwargs): # type: ignore
+    def execute(cls, # type: ignore
+                image, timeout, 
+                if_no_mask, graph_id, if_inputs_unchanged="Run normally", 
+                mask=None, audiofile="", extra1="", extra2="", extra3="", tip="", **kwargs): 
         iostore = InOutStore.get_store(f"{graph_id}_{cls.hidden.unique_id}")
 
+        if if_inputs_unchanged == "Always start with last output" and iostore.last_output is not None:
+            if iostore.check_input_tensors_congruent(image):
+                image, mask, extra1, extra2, extra3 = iostore.get_last()
+                mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
+
         # check if everything is unchanged (and store these inputs for next check)
-        if iostore.check_input_unchanged(image, timeout, if_no_mask, graph_id, mask, extra1, extra2, extra3, tip) and iostore.last_output is not None:
+        if iostore.check_input_unchanged(image, timeout, if_no_mask, graph_id, mask, audiofile, extra1, extra2, extra3, tip) and iostore.last_output is not None:
             if if_inputs_unchanged == "Start with last output":
                 image, mask, extra1, extra2, extra3 = iostore.get_last()
                 mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
             elif if_inputs_unchanged == "Resend last output":
                 return io.NodeOutput( *iostore.get_last() )
+        
+        iostore.update_last(image, timeout, if_no_mask, graph_id, mask, audiofile, extra1, extra2, extra3, tip)
             
         if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
             input_to_send = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
@@ -284,7 +322,13 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
             input_to_send = image
 
         urls = cls.save_images_return_urls(images=input_to_send, **kwargs)
-        payload = { "urls":urls, "maskedit":True, "extras":[extra1, extra2, extra3], "tip":tip}
+        payload = { 
+            "urls":urls, 
+            "maskedit":True, 
+            "extras":[extra1, extra2, extra3], 
+            "tip":tip, 
+            "audiopath": audiofile
+        }
         response = send_and_wait(payload, timeout, graph_id)
         
         if (response.masked_image): # old mask editor - uploads
@@ -304,7 +348,3 @@ class MaskImageFilter(io.ComfyNode, FilterNodeBase):
         if (image.shape[0:3] != mask.shape[0:3]):
             print(f"Mask shape {mask.shape} does not match image shape {image.shape}")
         return io.NodeOutput( *iostore.get_last() )
-
-    @classmethod
-    def fingerprint_inputs(cls, **kwargs) -> Any:
-        return random.random()
