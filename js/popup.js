@@ -90,7 +90,7 @@ class Popup extends HTMLElement {
         this.text_edit.id = 'text_edit'
         
         this.text_edit.addEventListener('click', (e)=>{ 
-            if (e.detail==2) { this.text_edit.value = this.retrieve_text() }
+            if (e.detail==3) { this.text_edit.value = this.retrieve_text() }
         })
 
         this.picked = new Set()
