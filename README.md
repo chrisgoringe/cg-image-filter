@@ -38,7 +38,7 @@ or jump down to [example workflows](#example-workflows) for more examples.
 ## New in 1.9
 
 - [Custom audio](#audiofile)
-- double-click in text field in `TextImageFilter` to insert last sent text
+- triple-click in text field in `TextImageFilter` to insert last sent text
 
 ## New in 1.8
 
@@ -171,7 +171,7 @@ generated. Here's a trivial workflow:
 
 Typing shortcuts. If you find you often use the same text in the `text` field, you can create shortcuts in the `tip` by enclosing them `{{ like this }}`.
 
-If you double-click in the text area, it will replace the contents with the text from the previous run (useful if you are tweaking the text for the same image)
+If you triple-click in the text area, it will replace the contents with the text from the previous run (useful if you are tweaking the text for the same image)
 
 ---
 
