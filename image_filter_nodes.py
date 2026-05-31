@@ -240,19 +240,27 @@ class InOutStore:
     def get_last(self) -> tuple[torch.Tensor, torch.Tensor|None, str, str, str]:
         assert self.last_output is not None, "No last output stored"
         return self.last_output
+    
+    def update_last(self, *args):
+        def make_copy(x): return x.clone() if isinstance(x, torch.Tensor) else x
+        self.previous_inputs = [ make_copy(x) for x in args ]
 
     def check_input_unchanged(self, *args) -> bool:
-        def make_copy(x): return x.clone() if isinstance(x, torch.Tensor) else x
-        try:
-            if len(self.previous_inputs)!=len(args): return False
-            for prev, new in zip(self.previous_inputs, args):
-                if isinstance(prev, torch.Tensor) and isinstance(new, torch.Tensor):
-                    if not torch.equal(prev, new): return False
-                else:
-                    if prev != new: return False
-            return True
-        finally:
-            self.previous_inputs = [ make_copy(x) for x in args ]
+        if len(self.previous_inputs)!=len(args): return False
+        for prev, new in zip(self.previous_inputs, args):
+            if isinstance(prev, torch.Tensor) and isinstance(new, torch.Tensor):
+                if not torch.equal(prev, new): return False
+            else:
+                if prev != new: return False
+        return True
+
+    def check_input_tensors_congruent(self, *args) -> bool:
+        if len(self.previous_inputs)!=len(args): return False
+        for prev, new in zip(self.previous_inputs, args):
+            if isinstance(prev, torch.Tensor) and isinstance(new, torch.Tensor):
+                if prev.shape != new.shape: return False
+        return True
+
     
 class MaskImageFilter(FilterNodeBase, io.ComfyNode):
     @classmethod
@@ -264,7 +272,7 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
                 io.Image.Input("image"),
                 io.Int.Input("timeout", default=600, min=1, max=1000000, tooltip="timeout in seconds"),
                 io.Combo.Input("if_no_mask", options=["cancel", "send blank"], default="send blank"),
-                io.Combo.Input("if_inputs_unchanged", options=["Run normally", "Start with last output", "Resend last output"], default="Run normally"),
+                io.Combo.Input("if_inputs_unchanged", options=["Run normally", "Start with last output", "Resend last output", "Always start with last output"], default="Run normally"),
                 io.Mask.Input("mask", optional=True, tooltip="optional"),
                 io.String.Input("tip", default="", optional=True),
                 io.String.Input("extra1", default="", optional=True),
@@ -293,6 +301,11 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
                 mask=None, audiofile="", extra1="", extra2="", extra3="", tip="", **kwargs): 
         iostore = InOutStore.get_store(f"{graph_id}_{cls.hidden.unique_id}")
 
+        if if_inputs_unchanged == "Always start with last output" and iostore.last_output is not None:
+            if iostore.check_input_tensors_congruent(image):
+                image, mask, extra1, extra2, extra3 = iostore.get_last()
+                mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
+
         # check if everything is unchanged (and store these inputs for next check)
         if iostore.check_input_unchanged(image, timeout, if_no_mask, graph_id, mask, audiofile, extra1, extra2, extra3, tip) and iostore.last_output is not None:
             if if_inputs_unchanged == "Start with last output":
@@ -300,6 +313,8 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
                 mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
             elif if_inputs_unchanged == "Resend last output":
                 return io.NodeOutput( *iostore.get_last() )
+        
+        iostore.update_last(image, timeout, if_no_mask, graph_id, mask, audiofile, extra1, extra2, extra3, tip)
             
         if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
             input_to_send = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
