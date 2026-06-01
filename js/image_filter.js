@@ -34,6 +34,14 @@ app.registerExtension({
             defaultValue: true
         },
         {
+            id: "Image Filter.UI.Sound Timeout",
+            name: "Reminder sound every x seconds",
+            type: "int",
+            defaultValue: 30,
+            onChange: popup.setup_sound_throttle.bind(popup)
+        },
+        
+        {
             id: "Image Filter.UI.Enlarge Small Images",
             name: "Enlarge small images in grid",
             type: "boolean",

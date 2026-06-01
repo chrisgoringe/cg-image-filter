@@ -202,6 +202,7 @@ or `No - selecting unselects previous` (click an image to select it and unselect
 - `Show a small popup instead of covering the screen` - instead of taking over the whole screen immediately, display a tiny version of the image in the top left. Click that image to go into the full screen mode. You can move the tiny image window around to where you want it by dragging the title bar.
 - `Enter the Image Filter node with an image zoomed` - instead of showing the grid of images, zoom in on one. Options are `first` or `last`
 - `Play sound when activating` - play a 'ding' sound when any of the filter nodes becomes active. You can change the sound by replacing the file `ding.mp3` in the `js` subfolder.
+- `Reminder sound every x seconds` - the 'ding' is repeated after x seconds if you are not interacting with the window.
 - `Video Frames per Second` - when previewing video(s), try to play them at this speed
 
 ---

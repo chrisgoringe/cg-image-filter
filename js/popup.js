@@ -3,7 +3,7 @@ import { api } from "../../scripts/api.js"
 
 import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save, new_editor, open_maskeditor } from "./mask_utils.js";
 import { Log } from "./log.js";
-import { create } from "./utils.js";
+import { create, CallbackThrottle } from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
 import { graph_id_to_tab } from "./graph_map.js";
 
@@ -98,11 +98,20 @@ class Popup extends HTMLElement {
         document.addEventListener("keydown", this.on_key_down.bind(this))
         document.addEventListener("keypress", this.on_key_press.bind(this))
 
+        document.addEventListener("click", ()=>this.sound_maker.reset())
+        this.text_edit.addEventListener('input', ()=>this.sound_maker.reset())
+
         document.body.appendChild(this)
         this.last_response_sent = 0
         this.state = State.INACTIVE
         this.hidden_by_toggle = false
         this.render()
+        this.setup_sound_throttle()
+    }
+    
+    setup_sound_throttle() {
+        const t = app.ui.settings.getSettingValue("Image Filter.UI.Sound Timeout")
+        this.sound_maker = new CallbackThrottle( this.maybe_play_sound.bind(this), t )
     }
 
     unique_id() { return `${app.graph.id}:${this.node?.id}` }
@@ -186,6 +195,8 @@ class Popup extends HTMLElement {
         *graph_id       (string)
                 (*) are added
         */
+        this.sound_maker.unreset()
+
         if (Date.now()-this.last_response_sent < 1000) {
             Log.message_out(msg, "(throttled)")
             return
@@ -362,7 +373,7 @@ class Popup extends HTMLElement {
             this.state = State.TINY
             this.saved_message = message
             this.tiny_image.src = get_full_url(message.detail.urls[message.detail.urls.length-1])
-            this.maybe_play_sound()
+            this.sound_maker.request()
             return `Deferring message and showing small window`
         }
 
@@ -372,7 +383,7 @@ class Popup extends HTMLElement {
             this.extras_row.innerHTML = ''
             for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras_row, {value:detail.extras[i]}) }
             
-            if (!using_saved && !this.autosend()) this.maybe_play_sound()
+            if (!using_saved && !this.autosend()) this.sound_maker.request()
 
             if (detail.maskedit)   this.handle_maskedit(detail) 
             else if (detail.urls)  this.handle_urls(detail)
