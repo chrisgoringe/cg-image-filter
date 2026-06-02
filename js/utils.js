@@ -1,3 +1,4 @@
+import { app  } from "../../scripts/app.js";
 
 export function create( tag, clss, parent, properties ) {
     const nd = document.createElement(tag);
@@ -14,20 +15,31 @@ export class CallbackThrottle {
         this.unreset()
     }
 
-    reset() { 
-        this.last_reset = Date.now()
+    log(m) {
+        if ((app.ui.settings.getSettingValue("Image Filter.Z.Detailed Logging"))) console.log(m)
     }
 
-    unreset() {
-        this.last_reset = Date.now() - this.millisecs
+    reset(msg) { 
+        this.next_allowed = Date.now() + this.millisecs
+        if (msg) this.log(`reset ${msg} - need to wait ${this.need_to_wait()}`)
     }
 
-    request() {
-        const elapsed = Date.now()-this.last_reset
-        if (Date.now()-this.last_reset > this.millisecs) {
-            console.log(`Callback`)
+    unreset(msg) {
+        this.next_allowed = Date.now()
+        if (msg) this.log(`unreset ${msg} - need to wait ${this.need_to_wait()}`)
+    }
+
+    need_to_wait() {
+        const ntw = this.next_allowed - Date.now()
+        return (ntw>0) ? ntw : 0
+    }
+
+    request(msg) {
+        if (msg) this.log(`request ${msg} - need to wait ${this.need_to_wait()}`)
+        if (this.need_to_wait() <= 0) {
+            if (msg) this.log(`Callback ${msg}`)
             this.callback()
-            this.reset()
+            this.reset('after callback')
         }
     }
 }

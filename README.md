@@ -47,7 +47,9 @@ or jump down to [example workflows](#example-workflows) for more examples.
 
 - [Custom audio](#audiofile)
 - triple-click in text field in `TextImageFilter` to insert last sent text
-- added option in `Mask Image Filter` to 
+- added option in `Mask Image Filter` to always start from last output
+- fixed `Mask Image Filter` fingerprinting to prevent downstream execution when sending the same output
+as a previous run (h/t [Reber01Good](https://github.com/Reber01Good))
 
 ## New in 1.8
 
@@ -301,6 +303,11 @@ Feel free to send me examples of how you use the nodes!
 
 ---
 
+# Thanks
+
+To those who have contributed code or helpful conversations:
+
+[Reber01Good](https://github.com/Reber01Good)
 
 # Bugs, Ideas, and the future
 

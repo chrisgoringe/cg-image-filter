@@ -1,16 +1,20 @@
 from nodes import PreviewImage, LoadImage
 from comfy.model_management import InterruptProcessingException
-import os, random
-import torch
-from typing import Any
+from comfy_api.latest import io
 
-import base64
+from .modules.InOutStore import InOutStore
+from .image_filter_messaging import send_and_wait, Response, TimeoutResponse
+
+import os, random, base64, time
+from typing import Any
 from io import BytesIO
+
+import torch
 from PIL import Image
 import numpy as np
 
-from .image_filter_messaging import send_and_wait, Response, TimeoutResponse
-from comfy_api.latest import io
+import folder_paths
+from pathlib import Path
 
 class FilterNodeBase:
     _preview_image = PreviewImage()
@@ -22,7 +26,16 @@ class FilterNodeBase:
 
     @classmethod
     def load_mask(cls, file:str, type:str="clipspace", append=" [input]") -> torch.Tensor:
-        return cls._load_image.load_image(os.path.join(type, file)+append)[1]
+        f = os.path.join(type, file)+append
+        path = folder_paths.get_annotated_filepath(f)
+        print(f"Loading mask from {f}")
+        return cls._load_image.load_image(f)[1]
+    
+    @classmethod
+    def newest_mask_file(cls) -> Path:
+        dr = Path(folder_paths.get_input_directory()) / 'clipspace'
+        masked_files = list(dr.glob("*masked*"))
+        return max([f for f in masked_files], key=lambda item: item.stat().st_ctime) if masked_files else None
     
     @classmethod
     def fingerprint_inputs(cls, **kwargs): # type: ignore
@@ -225,41 +238,6 @@ def mask_from_data(data) -> torch.Tensor:
     mask = 1. - torch.from_numpy(mask)
     return mask.unsqueeze(0)
 
-class InOutStore:
-    stores:dict[str, "InOutStore"] = {}
-    @classmethod
-    def get_store(cls, graph_id:str) -> "InOutStore":
-        if graph_id not in cls.stores:
-            cls.stores[graph_id] = InOutStore()
-        return cls.stores[graph_id]
-
-    def __init__(self): 
-        self.previous_inputs:list[Any] = []
-        self.last_output:tuple[torch.Tensor, torch.Tensor|None, str, str, str]|None = None
-
-    def get_last(self) -> tuple[torch.Tensor, torch.Tensor|None, str, str, str]:
-        assert self.last_output is not None, "No last output stored"
-        return self.last_output
-    
-    def update_last(self, *args):
-        def make_copy(x): return x.clone() if isinstance(x, torch.Tensor) else x
-        self.previous_inputs = [ make_copy(x) for x in args ]
-
-    def check_input_unchanged(self, *args) -> bool:
-        if len(self.previous_inputs)!=len(args): return False
-        for prev, new in zip(self.previous_inputs, args):
-            if isinstance(prev, torch.Tensor) and isinstance(new, torch.Tensor):
-                if not torch.equal(prev, new): return False
-            else:
-                if prev != new: return False
-        return True
-
-    def check_input_tensors_congruent(self, *args) -> bool:
-        if len(self.previous_inputs)!=len(args): return False
-        for prev, new in zip(self.previous_inputs, args):
-            if isinstance(prev, torch.Tensor) and isinstance(new, torch.Tensor):
-                if prev.shape != new.shape: return False
-        return True
 
     
 class MaskImageFilter(FilterNodeBase, io.ComfyNode):
@@ -301,25 +279,37 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
                 mask=None, audiofile="", extra1="", extra2="", extra3="", tip="", **kwargs): 
         iostore = InOutStore.get_store(f"{graph_id}_{cls.hidden.unique_id}")
 
-        if if_inputs_unchanged == "Always start with last output" and iostore.last_output is not None:
+        if if_inputs_unchanged == "Always start with last output" and iostore.have_last_output:
             if iostore.check_input_tensors_congruent(image):
-                image, mask, extra1, extra2, extra3 = iostore.get_last()
+                image, mask, extra1, extra2, extra3 = iostore.get_last_outputs()
                 mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
 
         # check if everything is unchanged (and store these inputs for next check)
-        if iostore.check_input_unchanged(image, timeout, if_no_mask, graph_id, mask, audiofile, extra1, extra2, extra3, tip) and iostore.last_output is not None:
+        unchanged_in = (
+            iostore.have_last_output and 
+            iostore.compare_with_last_inputs(image, timeout, if_no_mask, graph_id,
+                                             mask, audiofile, extra1, extra2, extra3, tip)
+        )
+
+        iostore.update_last_inputs(image, timeout, if_no_mask, graph_id, 
+                                   mask, audiofile, extra1, extra2, extra3, tip)
+
+        if unchanged_in:
             if if_inputs_unchanged == "Start with last output":
-                image, mask, extra1, extra2, extra3 = iostore.get_last()
+                print("\n\nStarting with last output\n\n")
+                image, mask, extra1, extra2, extra3 = iostore.get_last_outputs()
                 mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
-            elif if_inputs_unchanged == "Resend last output":
-                return io.NodeOutput( *iostore.get_last() )
-        
-        iostore.update_last(image, timeout, if_no_mask, graph_id, mask, audiofile, extra1, extra2, extra3, tip)
-            
+            elif if_inputs_unchanged == "Resend last output": 
+                # this should never occur, because of fingerprinting...
+                return io.NodeOutput( *iostore.get_last_outputs() )
+             
         if mask is not None and mask.shape[:3] == image.shape[:3] and not torch.all(mask==0):
             input_to_send = torch.cat((image, mask.unsqueeze(-1)), dim=-1)
         else:
             input_to_send = image
+
+
+        last_mask_file = cls.newest_mask_file()
 
         urls = cls.save_images_return_urls(images=input_to_send, **kwargs)
         payload = { 
@@ -331,20 +321,40 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
         }
         response = send_and_wait(payload, timeout, graph_id)
         
-        if (response.masked_image): # old mask editor - uploads
-            try:
-                mask = cls.load_mask(response.masked_image)
-            except FileNotFoundError: # no mask was uploaded; reload the input mask, or the mask in the input image
-                mask = mask if mask is not None else cls.load_mask(urls[0]['filename']+" [temp]")
-                
-        elif (response.masked_data): # new mask editor - sends the blob
-            data = response.masked_data.split(',',1)[-1]
-            mask = mask_from_data(data)
+        started_waiting_at = time.monotonic()
+        while ( 
+            ((mask_file:=cls.newest_mask_file()) == last_mask_file) and 
+            (time.monotonic()-started_waiting_at < 5)): time.sleep(1)
+        
+        if (mask_file==last_mask_file):
+            print("Didn't get a new mask file - using input mask or image")
+            mask = mask if mask is not None else cls.load_mask(urls[0]['filename']+" [temp]")
+        else:
+            mask = cls.load_mask(mask_file)
 
-        if mask is None: mask = torch.zeros_like(image[...,0]) 
+        if mask is None: 
+            print("No mask file - setting blank")
+            mask = torch.zeros_like(image[...,0]) 
+
         if if_no_mask == 'cancel' and torch.all(mask==0): raise InterruptProcessingException() 
 
-        iostore.last_output = ( image.clone(), mask.clone(), *response.get_extras((extra1, extra2, extra3)) )
+        iostore.update_last_outputs( ( image.clone(), mask.clone(), *response.get_extras((extra1, extra2, extra3)) ) )
         if (image.shape[0:3] != mask.shape[0:3]):
             print(f"Mask shape {mask.shape} does not match image shape {image.shape}")
-        return io.NodeOutput( *iostore.get_last() )
+        return io.NodeOutput( *iostore.get_last_outputs() )
+    
+    # When using "Resend last output", it's not enough to just send the same output; 
+    # we need to also tell the execution engine , so it can avoid uncessary downstream execution.
+    # 
+    # So fingerprint_inputs needs to return the same value in such cases.
+    # Can't use the check_input_unchanged method because of its side effect 
+    # (it updates its map of the last inputs received)
+    #
+    # Thanks to Reber01Good on GitHub for pointing this out and providing a fix which I have adapted.
+    @classmethod
+    def fingerprint_inputs(cls, **kwargs) -> Any:
+        if kwargs.pop("if_inputs_unchanged", "") == "Resend last output":
+            iostore = InOutStore.get_store(f"{kwargs.get('graph_id','')}_{cls.hidden.unique_id}")
+            return iostore.tensor_free_hash( *kwargs.values() )
+        else:
+            return random.random()
