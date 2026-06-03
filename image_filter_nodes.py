@@ -25,17 +25,15 @@ class FilterNodeBase:
         return cls._preview_image.save_images(images, **kwargs)['ui']['images']
 
     @classmethod
-    def load_mask(cls, file:str, type:str="clipspace", append=" [input]") -> torch.Tensor:
+    def load_mask(cls, file:str|Path, type:str="clipspace", append=" [input]") -> torch.Tensor:
         f = os.path.join(type, file)+append
-        path = folder_paths.get_annotated_filepath(f)
-        print(f"Loading mask from {f}")
         return cls._load_image.load_image(f)[1]
     
     @classmethod
-    def newest_mask_file(cls) -> Path:
+    def newest_mask_file(cls) -> Path|None:
         dr = Path(folder_paths.get_input_directory()) / 'clipspace'
         masked_files = list(dr.glob("*masked*"))
-        return max([f for f in masked_files], key=lambda item: item.stat().st_ctime) if masked_files else None
+        return max([f for f in masked_files], key=lambda item: item.stat().st_birthtime) if masked_files else None
     
     @classmethod
     def fingerprint_inputs(cls, **kwargs): # type: ignore
@@ -279,8 +277,9 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
                 mask=None, audiofile="", extra1="", extra2="", extra3="", tip="", **kwargs): 
         iostore = InOutStore.get_store(f"{graph_id}_{cls.hidden.unique_id}")
 
-        if if_inputs_unchanged == "Always start with last output" and iostore.have_last_output:
-            if iostore.check_input_tensors_congruent(image):
+        if (if_inputs_unchanged == "Always start with last output" and 
+            iostore.have_last_output and 
+            iostore.check_input_image_congruent(image)):
                 image, mask, extra1, extra2, extra3 = iostore.get_last_outputs()
                 mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
 
@@ -296,7 +295,6 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
 
         if unchanged_in:
             if if_inputs_unchanged == "Start with last output":
-                print("\n\nStarting with last output\n\n")
                 image, mask, extra1, extra2, extra3 = iostore.get_last_outputs()
                 mask = 1.0 - mask if mask is not None else None  # The mask editor works in inverse
             elif if_inputs_unchanged == "Resend last output": 
@@ -327,13 +325,11 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
             (time.monotonic()-started_waiting_at < 5)): time.sleep(1)
         
         if (mask_file==last_mask_file):
-            print("Didn't get a new mask file - using input mask or image")
             mask = mask if mask is not None else cls.load_mask(urls[0]['filename']+" [temp]")
-        else:
+        elif (mask_file is not None):
             mask = cls.load_mask(mask_file)
 
         if mask is None: 
-            print("No mask file - setting blank")
             mask = torch.zeros_like(image[...,0]) 
 
         if if_no_mask == 'cancel' and torch.all(mask==0): raise InterruptProcessingException() 
