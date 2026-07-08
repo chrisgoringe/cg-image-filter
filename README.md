@@ -134,8 +134,9 @@ This is a new, experimental feature, so please report any issues...
 ### audiofile
 
 The sound to play when the node is triggered. Can be one of the built-in options, 
-[`beep.mp3`](js/audio/beep.mp3), [`ding.mp3`](js/audio/ding.mp3), or [`honk.mp3`](js/audio/honk.mp3), 
-or the path to a local audiofile, or a URL of an audiofile.
+[`beep`](js/audio/beep.mp3), [`ding`](js/audio/ding.mp3), [`honk`](js/audio/honk.mp3), 
+or [`none`](js/audio/none.mp3), or the path to a local audiofile, or a URL of an audiofile.
+If no extension is used, `.mp3` will be assumed.
 
 You can add files to `js/audio` and then just use their names. 
 
@@ -308,6 +309,7 @@ Feel free to send me examples of how you use the nodes!
 To those who have contributed code or helpful conversations:
 
 [Reber01Good](https://github.com/Reber01Good)
+[53245342099](https://github.com/53245342099)
 
 # Bugs, Ideas, and the future
 

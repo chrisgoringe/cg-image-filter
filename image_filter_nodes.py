@@ -310,6 +310,7 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
         last_mask_file = cls.newest_mask_file()
 
         urls = cls.save_images_return_urls(images=input_to_send, **kwargs)
+        if not Path(audiofile).suffix: audiofile += ".mp3"
         payload = { 
             "urls":urls, 
             "maskedit":True, 
