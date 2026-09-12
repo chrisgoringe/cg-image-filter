@@ -59,7 +59,9 @@ or jump down to [example workflows](#example-workflows) for more examples.
 
 - [Custom audio](#audiofile)
 - triple-click in text field in `TextImageFilter` to insert last sent text
-- added option in `Mask Image Filter` to 
+- added option in `Mask Image Filter` to always start from last output
+- fixed `Mask Image Filter` fingerprinting to prevent downstream execution when sending the same output
+as a previous run (h/t [Reber01Good](https://github.com/Reber01Good))
 
 ## New in 1.8
 
@@ -144,8 +146,9 @@ This is a new, experimental feature, so please report any issues...
 ### audiofile
 
 The sound to play when the node is triggered. Can be one of the built-in options, 
-[`beep.mp3`](js/audio/beep.mp3), [`ding.mp3`](js/audio/ding.mp3), or [`honk.mp3`](js/audio/honk.mp3), 
-or the path to a local audiofile, or a URL of an audiofile.
+[`beep`](js/audio/beep.mp3), [`ding`](js/audio/ding.mp3), [`honk`](js/audio/honk.mp3), 
+or [`none`](js/audio/none.mp3), or the path to a local audiofile, or a URL of an audiofile.
+If no extension is used, `.mp3` will be assumed.
 
 You can add files to `js/audio` and then just use their names. 
 
@@ -313,6 +316,12 @@ Feel free to send me examples of how you use the nodes!
 
 ---
 
+# Thanks
+
+To those who have contributed code or helpful conversations:
+
+[Reber01Good](https://github.com/Reber01Good)
+[53245342099](https://github.com/53245342099)
 
 # Bugs, Ideas, and the future
 
