@@ -98,8 +98,8 @@ class Popup extends HTMLElement {
         document.addEventListener("keydown", this.on_key_down.bind(this))
         document.addEventListener("keypress", this.on_key_press.bind(this))
 
-        document.addEventListener("click", ()=>this.sound_maker.reset())
-        this.text_edit.addEventListener('input', ()=>this.sound_maker.reset())
+        document.addEventListener("click", ()=>this.sound_maker.reset('click'))
+        this.text_edit.addEventListener('input', ()=>this.sound_maker.reset('text edit'))
 
         document.body.appendChild(this)
         this.last_response_sent = 0
@@ -195,7 +195,7 @@ class Popup extends HTMLElement {
         *graph_id       (string)
                 (*) are added
         */
-        this.sound_maker.unreset()
+        this.sound_maker.unreset("send response")
 
         if (Date.now()-this.last_response_sent < 1000) {
             Log.message_out(msg, "(throttled)")
@@ -293,6 +293,7 @@ class Popup extends HTMLElement {
     }
 
     on_new_node(nd) {
+        this.sound_maker.unreset('on new node')
         this.node = nd
         const fp = this.floater_position()
         if (fp) this.floating_window.move_to(fp.x, fp.y, true)
@@ -352,6 +353,7 @@ class Popup extends HTMLElement {
         if (this.node!=the_node) this.on_new_node(the_node)
 
         if (detail.tick) {
+            this.sound_maker.request('tick')
             this.counter_text.innerText = `${detail.tick}s`
             if (this.state==State.INACTIVE) this.request_reset()
             return
@@ -373,7 +375,7 @@ class Popup extends HTMLElement {
             this.state = State.TINY
             this.saved_message = message
             this.tiny_image.src = get_full_url(message.detail.urls[message.detail.urls.length-1])
-            this.sound_maker.request()
+            this.sound_maker.request('tiny')
             return `Deferring message and showing small window`
         }
 
@@ -383,7 +385,7 @@ class Popup extends HTMLElement {
             this.extras_row.innerHTML = ''
             for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras_row, {value:detail.extras[i]}) }
             
-            if (!using_saved && !this.autosend()) this.sound_maker.request()
+            if (!using_saved && !this.autosend()) this.sound_maker.request('open')
 
             if (detail.maskedit)   this.handle_maskedit(detail) 
             else if (detail.urls)  this.handle_urls(detail)
