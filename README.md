@@ -14,6 +14,18 @@ to be able to fix things if you give me the information requested.**
 
 ---
 
+# Changes to Mask Image Filter
+
+Because Comfy has changed the way that the Mask Editor works, the Mask Image Filter has had to be modified.
+
+- Use the Save and Cancel buttons in the editor to save or cancel
+- The extra values are no longer editable
+
+If you used the extras, the best approach is to chain it with a Text Image Filter like this:
+![chain](images/chain.png)
+
+---
+
 ## Introduction 
 
 A set of nodes designed to pause execution of the workflow to allow you to make selections and/or edits before continuing.

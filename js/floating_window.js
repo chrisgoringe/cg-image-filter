@@ -20,7 +20,6 @@ export class FloatingWindow extends HTMLElement {
         this.dragging = false
         this.move_to(x,y)
         
-
         if (parent) parent.append(this)
         else document.body.append(this)
     }

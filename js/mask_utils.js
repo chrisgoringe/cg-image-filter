@@ -5,13 +5,19 @@ export function new_editor() {
 }
 
 function get_mask_editor_element() {
-    const newer = document.getElementsByClassName('p-dialog-mask')
+    var newer = document.getElementsByClassName('p-dialog-mask')
+    if (newer.length==1) return newer[0]
+    newer = document.getElementsByClassName('mask-editor-dialog')
     if (newer.length==1) return newer[0]
     return new_editor() ? document.getElementById('maskEditor') : document.getElementById('maskCanvas')?.parentElement
 }
 
+var buttons = null
+
 export function mask_editor_showing() {
-    return get_mask_editor_element() && get_mask_editor_element().style.display != 'none'
+    const mee = get_mask_editor_element()
+    if (mee) buttons = Array.from(mee.getElementsByTagName('button'))
+    return mee && mee.style.display != 'none'
 }
 
 export function hide_mask_editor() {
@@ -22,12 +28,12 @@ function get_mask_editor_cancel_button() {
     try {
         var button = document.getElementById("maskEditor_topBarCancelButton")
         if (button) return button
-        const buttonlist = get_mask_editor_element()?.getElementsByTagName('button')
-        if (buttonlist) {
-            const buttons = Array.from(buttonlist)
+        //const buttonlist = get_mask_editor_element()?.getElementsByTagName('button')
+        if (buttons) {
+            //const buttons = Array.from(buttonlist)
             button = buttons.find((b)=>(b.ariaLabel=='Cancel'))
             if (button) return button
-            button = buttons.find((b)=>(b.innerText=='Cancel'))
+            button = buttons.find((b)=>(b.innerText=='Cancel' || b.innerText==' Cancel'))
             if (button) return button
         }
         button = get_mask_editor_element()?.parentElement?.lastChild?.childNodes[2]
@@ -45,11 +51,13 @@ function get_mask_editor_save_button() {
     var button = document.getElementById("maskEditor_topBarSaveButton")
     if (button) return button
     try {
-        const buttons = Array.from(get_mask_editor_element().getElementsByTagName('button'))
-        button = buttons.find((b)=>(b.ariaLabel=='Save'))
-        if (button) return button
-        button = buttons.find((b)=>(b.innerText=='Save'))
-        if (button) return button
+        //const buttons = Array.from(get_mask_editor_element().getElementsByTagName('button'))
+        if (buttons) {
+            button = buttons.find((b)=>(b.ariaLabel=='Save'))
+            if (button) return button
+            button = buttons.find((b)=>(b.innerText=='Save' || b.innerText==' Save'))
+            if (button) return button
+        }
     } catch {
         let a;
     }

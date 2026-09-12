@@ -98,8 +98,11 @@ class Popup extends HTMLElement {
         document.addEventListener("keydown", this.on_key_down.bind(this))
         document.addEventListener("keypress", this.on_key_press.bind(this))
 
-        document.addEventListener("click", ()=>this.sound_maker.reset())
-        this.text_edit.addEventListener('input', ()=>this.sound_maker.reset())
+        document.addEventListener("click", (e)=>{
+            this.sound_maker.reset('click')
+            var x = e.id
+        })
+        this.text_edit.addEventListener('input', ()=>this.sound_maker.reset('text edit'))
 
         document.body.appendChild(this)
         this.last_response_sent = 0
@@ -165,9 +168,10 @@ class Popup extends HTMLElement {
         this.visible(this.zoomed, state==State.ZOOMED)
 
         this.visible(this.floating_window, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT || state==State.MASK))
+        this.visible(this.counter_row, (state==State.FILTER || state==State.ZOOMED || state==State.TEXT))
         this.visible(this.button_row, state!=State.MASK)
         this.disabled(this.send_button, (state==State.FILTER || state==State.ZOOMED) && this.picked.size==0)
-        this.visible(this.mask_button_row, state==State.MASK && new_editor())
+        this.visible(this.mask_button_row, state==State.MASK && new_editor() && false)
         this.visible(this.extras_row, this.n_extras>0)
         this.visible(this.tip_row, this.tip_row.innerHTML.length>0)
         this.visible(this.text_edit, state==State.TEXT)
@@ -258,8 +262,8 @@ class Popup extends HTMLElement {
     async maybe_play_sound() { 
         if (app.ui.settings.getSettingValue("Image Filter.UI.Play Sound")) {
             if (this.audiopath) {
-                if (await this.play_sound(this.audiopath) || 
-                    await this.play_sound(default_audio_folder + this.audiopath)) return
+                if (await this.play_sound(default_audio_folder + this.audiopath) || 
+                    await this.play_sound(this.audiopath)) return
             }
             this.play_sound(default_audio_folder + default_audio_file)
         }
@@ -268,8 +272,12 @@ class Popup extends HTMLElement {
     async play_sound(path) {
         if (!path) return false
         try {
-            const audio = new Audio(path);
-            await audio.play()
+            const resp = await fetch(path);
+            if (!resp.ok) return false
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'audio/mpeg' }));
+            const audio = new Audio(blobUrl);
+            await audio.play();
             return true
         } catch (e) {
             return false

@@ -12,6 +12,9 @@ import numpy as np
 from .image_filter_messaging import send_and_wait, Response, TimeoutResponse
 from comfy_api.latest import io
 
+def get_audiofiles() -> list[str]:
+    return [f.name for f in (Path(__file__).parent/'js'/'audio').iterdir()]
+
 class FilterNodeBase:
     _preview_image = PreviewImage()
     _load_image = LoadImage()
@@ -21,8 +24,15 @@ class FilterNodeBase:
         return cls._preview_image.save_images(images, **kwargs)['ui']['images']
 
     @classmethod
-    def load_mask(cls, file:str, type:str="clipspace", append=" [input]") -> torch.Tensor:
-        return cls._load_image.load_image(os.path.join(type, file)+append)[1]
+    def load_mask(cls, file:str|Path, type:str="clipspace", append=" [input]") -> torch.Tensor:
+        f = os.path.join(type, file)+append
+        return cls._load_image.load_image(f)[1]
+    
+    @classmethod
+    def newest_mask_file(cls) -> Path|None:
+        dr = Path(folder_paths.get_input_directory())# / 'clipspace'
+        masked_files = list(dr.glob("*masked*"))
+        return max([f for f in masked_files], key=lambda item: item.stat().st_birthtime) if masked_files else None
     
     @classmethod
     def fingerprint_inputs(cls, **kwargs): # type: ignore
@@ -75,7 +85,7 @@ class ImageFilter(FilterNodeBase, io.ComfyNode):
                 io.Int.Input("pick_list_start", advanced=True, optional=True, default=0, tooltip="The index of the first image (normally 0 or 1)"),
                 io.String.Input("pick_list", advanced=True, optional=True, default="", tooltip="If a comma separated list of integers is provided, the images with these indices will be selected automatically."),
                 io.Int.Input("video_frames", advanced=True, optional=True, default=1, tooltip="Treat each block of n images as a video"),
-                io.String.Input("audiofile", advanced=True, optional=True, default="", tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
+                io.Combo.Input("audiofile", options=get_audiofiles(), default='ding.mp3', advanced=True, optional=True, tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
                 io.String.Input("graph_id", default="")
             ],
             outputs = [
@@ -128,6 +138,8 @@ class ImageFilter(FilterNodeBase, io.ComfyNode):
         if len(images_to_return) == 0:
             all_the_same = ( B and all( (images[i]==images[0]).all() for i in range(1,B) )) 
             urls:list[dict[str,str]] = cls.save_images_return_urls(images=images, **kwargs)
+            audiofile = audiofile or ""
+            if not Path(audiofile).suffix: audiofile += ".mp3"
             payload = { 
                 "urls":urls, 
                 "allsame":all_the_same, 
@@ -177,7 +189,7 @@ class TextImageFilter(FilterNodeBase, io.ComfyNode):
                 io.String.Input("extra2", default="", optional=True),
                 io.String.Input("extra3", default="", optional=True),
                 io.Int.Input("textareaheight", default=150, min=30, max=500),
-                io.String.Input("audiofile", advanced=True, optional=True, default="", tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
+                io.Combo.Input("audiofile", options=get_audiofiles(), default='ding.mp3', advanced=True, optional=True, tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
                 io.String.Input("graph_id", default="")
             ],
             outputs = [
@@ -196,6 +208,7 @@ class TextImageFilter(FilterNodeBase, io.ComfyNode):
                 mask=None, tip="", textareaheight=None, audiofile="", **kwargs): # type: ignore
         if image is None: image = torch.zeros((1,64,64,3))
         urls:list[dict[str,str]] = cls.save_images_return_urls(images=image, **kwargs)
+        if not Path(audiofile).suffix: audiofile += ".mp3"
         payload = {
             "urls":urls, 
             "text":text, 
@@ -278,7 +291,7 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
                 io.String.Input("extra1", default="", optional=True),
                 io.String.Input("extra2", default="", optional=True),
                 io.String.Input("extra3", default="", optional=True),
-                io.String.Input("audiofile", advanced=True, optional=True, default="", tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
+                io.Combo.Input("audiofile", options=get_audiofiles(), default='ding.mp3', advanced=True, optional=True, tooltip="Path or URL for the audiofile to use, or name of the file in the default audio folder"),
                 io.String.Input("graph_id", default=""),
             ],
             hidden=[
@@ -325,26 +338,33 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
         payload = { 
             "urls":urls, 
             "maskedit":True, 
-            "extras":[extra1, extra2, extra3], 
+            "extras":[],#[extra1, extra2, extra3], 
             "tip":tip, 
             "audiopath": audiofile
         }
         response = send_and_wait(payload, timeout, graph_id)
         
-        if (response.masked_image): # old mask editor - uploads
-            try:
-                mask = cls.load_mask(response.masked_image)
-            except FileNotFoundError: # no mask was uploaded; reload the input mask, or the mask in the input image
-                mask = mask if mask is not None else cls.load_mask(urls[0]['filename']+" [temp]")
-                
-        elif (response.masked_data): # new mask editor - sends the blob
-            data = response.masked_data.split(',',1)[-1]
-            mask = mask_from_data(data)
+        started_waiting_at = time.monotonic()
+        while ( 
+            ((mask_file:=cls.newest_mask_file()) == last_mask_file) and 
+            (time.monotonic()-started_waiting_at < 5)): time.sleep(1)
+        
+        if (mask_file==last_mask_file):
+            if mask is None:
+                try:
+                    mask = cls.load_mask(urls[0]['filename']+" [temp]")
+                except FileNotFoundError:
+                    pass
+        elif (mask_file is not None):
+            mask = cls.load_mask(mask_file)
+
+        if mask is None: 
+            mask = torch.zeros_like(image[...,0]) 
 
         if mask is None: mask = torch.zeros_like(image[...,0]) 
         if if_no_mask == 'cancel' and torch.all(mask==0): raise InterruptProcessingException() 
 
-        iostore.last_output = ( image.clone(), mask.clone(), *response.get_extras((extra1, extra2, extra3)) )
+        iostore.update_last_outputs( ( image.clone(), mask.clone(), extra1, extra2, extra3) ) #*response.get_extras((extra1, extra2, extra3)) ) )
         if (image.shape[0:3] != mask.shape[0:3]):
             print(f"Mask shape {mask.shape} does not match image shape {image.shape}")
         return io.NodeOutput( *iostore.get_last() )
