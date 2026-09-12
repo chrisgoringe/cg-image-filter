@@ -34,7 +34,7 @@ class FilterNodeBase:
     
     @classmethod
     def newest_mask_file(cls) -> Path|None:
-        dr = Path(folder_paths.get_input_directory()) / 'clipspace'
+        dr = Path(folder_paths.get_input_directory())
         masked_files = list(dr.glob("*masked*"))
         return max([f for f in masked_files], key=lambda item: item.stat().st_birthtime) if masked_files else None
     
