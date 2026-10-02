@@ -1,7 +1,7 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
-import { create } from "./utils.js";
+import { create, sound_maker } from "./utils.js";
 import { popup, remove_preview } from "./popup.js";
 import { graph_id_to_tab } from "./graph_map.js";
 import { Log } from "./log.js";
@@ -35,10 +35,9 @@ app.registerExtension({
         },
         {
             id: "Image Filter.UI.Sound Timeout",
-            name: "Reminder sound every x seconds",
+            name: "Reminder sound every x seconds. 0 or negative for never.",
             type: "int",
-            defaultValue: 30,
-            onChange: popup.setup_sound_throttle.bind(popup)
+            defaultValue: 30
         },
         
         {
@@ -97,6 +96,7 @@ app.registerExtension({
             {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./zoomed.css", import.meta.url).href } )
         api.addEventListener("execution_interrupted", popup.send_cancel.bind(popup));
         api.addEventListener("cg-image-filter-images",popup.handle_message.bind(popup));
+        api.addEventListener("execution_interrupted", sound_maker.on_execution_ended.bind(sound_maker));
     },
     async beforeRegisterNodeDef(nodeType) {
         if (nodeType.comfyClass == "Pick from List") {

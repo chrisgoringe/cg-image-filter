@@ -1,9 +1,9 @@
-import { app, ComfyApp } from "../../scripts/app.js";
+import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js"
 
 import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save, new_editor, open_maskeditor } from "./mask_utils.js";
 import { Log } from "./log.js";
-import { create, CallbackThrottle } from "./utils.js";
+import { create, sound_maker } from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
 import { graph_id_to_tab } from "./graph_map.js";
 
@@ -29,8 +29,7 @@ const State = Object.freeze({
     ZOOMED      : 5,
 })
 
-const default_audio_folder = 'extensions/cg-image-filter/audio/'
-const default_audio_file = 'ding.mp3';
+
 
 const stored_texts = {}
 
@@ -98,20 +97,12 @@ class Popup extends HTMLElement {
         document.addEventListener("keydown", this.on_key_down.bind(this))
         document.addEventListener("keypress", this.on_key_press.bind(this))
 
-        document.addEventListener("click", ()=>this.sound_maker.reset('click'))
-        this.text_edit.addEventListener('input', ()=>this.sound_maker.reset('text edit'))
-
         document.body.appendChild(this)
         this.last_response_sent = 0
         this.state = State.INACTIVE
         this.hidden_by_toggle = false
         this.render()
-        this.setup_sound_throttle()
-    }
-    
-    setup_sound_throttle() {
-        const t = app.ui.settings.getSettingValue("Image Filter.UI.Sound Timeout")
-        this.sound_maker = new CallbackThrottle( this.maybe_play_sound.bind(this), t )
+
     }
 
     unique_id() { return `${app.graph.id}:${this.node?.id}` }
@@ -196,7 +187,6 @@ class Popup extends HTMLElement {
         *graph_id       (string)
                 (*) are added
         */
-        this.sound_maker.unreset("send response")
 
         if (Date.now()-this.last_response_sent < 1000) {
             Log.message_out(msg, "(throttled)")
@@ -256,30 +246,6 @@ class Popup extends HTMLElement {
         this.render()
     }
 
-    async maybe_play_sound() { 
-        if (app.ui.settings.getSettingValue("Image Filter.UI.Play Sound")) {
-            if (this.audiopath) {
-                if (await this.play_sound(default_audio_folder + this.audiopath) || 
-                    await this.play_sound(this.audiopath)) return
-            }
-            this.play_sound(default_audio_folder + default_audio_file)
-        }
-    }
-
-    async play_sound(path) {
-        if (!path) return false
-        try {
-            const resp = await fetch(path);
-            if (!resp.ok) return false
-            const blob = await resp.blob();
-            const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'audio/mpeg' }));
-            const audio = new Audio(blobUrl);
-            await audio.play();
-            return true
-        } catch (e) {
-            return false
-        }
-    }
 
     handle_message(message) { 
         Log.message_in(message)
@@ -298,7 +264,6 @@ class Popup extends HTMLElement {
     }
 
     on_new_node(nd) {
-        this.sound_maker.unreset('on new node')
         this.node = nd
         const fp = this.floater_position()
         if (fp) this.floating_window.move_to(fp.x, fp.y, true)
@@ -345,7 +310,7 @@ class Popup extends HTMLElement {
         const the_node = this.find_node(uid)
         const graph_id = message.detail.graph_id
 
-        if (detail.audiopath) this.audiopath = detail.audiopath
+        sound_maker.on_message(detail)
 
         if (graph_id != app.graph.id) {
             this._flash_tab(graph_id)
@@ -358,7 +323,6 @@ class Popup extends HTMLElement {
         if (this.node!=the_node) this.on_new_node(the_node)
 
         if (detail.tick) {
-            this.sound_maker.request('tick')
             this.counter_text.innerText = `${detail.tick}s`
             if (this.state==State.INACTIVE) this.request_reset()
             return
@@ -380,7 +344,6 @@ class Popup extends HTMLElement {
             this.state = State.TINY
             this.saved_message = message
             this.tiny_image.src = get_full_url(message.detail.urls[message.detail.urls.length-1])
-            this.sound_maker.request('tiny')
             return `Deferring message and showing small window`
         }
 
@@ -389,8 +352,6 @@ class Popup extends HTMLElement {
             this.n_extras = detail.extras ? message.detail.extras.length : 0 
             this.extras_row.innerHTML = ''
             for (let i=0; i<this.n_extras; i++) { create('input', 'extra', this.extras_row, {value:detail.extras[i]}) }
-            
-            if (!using_saved && !this.autosend()) this.sound_maker.request('open')
 
             if (detail.maskedit)   this.handle_maskedit(detail) 
             else if (detail.urls)  this.handle_urls(detail)
