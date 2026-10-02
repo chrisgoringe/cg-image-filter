@@ -332,7 +332,11 @@ class MaskImageFilter(FilterNodeBase, io.ComfyNode):
             (time.monotonic()-started_waiting_at < 5)): time.sleep(1)
         
         if (mask_file==last_mask_file):
-            mask = mask if mask is not None else cls.load_mask(urls[0]['filename']+" [temp]")
+            try:
+                mask = mask if mask is not None else cls.load_mask(urls[0]['filename']+" [temp]")
+            except Exception as e:
+                print(f"{e} - setting mask to None")
+                mask = None
         elif (mask_file is not None):
             mask = cls.load_mask(mask_file)
 
