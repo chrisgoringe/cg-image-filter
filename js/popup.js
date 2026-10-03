@@ -300,7 +300,8 @@ class Popup extends HTMLElement {
 
     _handle_message(message, using_saved) {
         const detail = message.detail
-        const uid = app.runningNodeId
+        const uid = sound_maker.executing_uid //app.runningNodeId
+        Log.detail(`_handle_message ${uid}`)
 
         if (!uid) {
             Log.log("Workflow isn't running")

@@ -13,34 +13,41 @@ const default_audio_folder = 'extensions/cg-image-filter/audio/'
 const default_audio_file = 'ding.mp3';
 
 export class AudioHandler {
+
     constructor() {
         this.audiopath = default_audio_folder + default_audio_file
-        this.last_uid  = undefined
-        this.next_allowed = Date.now()
+        this.last_uid_to_ping  = undefined
+        this.next_ping_allowed = Date.now()
+        this.executing_uid = undefined
     }
 
     on_message(detail) {
         if (detail.audiopath) this.audiopath = detail.audiopath
-        const uid = app.runningNodeId
-        if (this.last_uid != uid) {
-            this.next_allowed = Date.now()
-            this.last_uid = uid
+        if (this.last_uid_to_ping != this.executing_uid) {
+            this._log(`uid was ${this.last_uid_to_ping}, now ${this.executing_uid}`)
+            this.next_ping_allowed = Date.now()
+            this.last_uid_to_ping = this.executing_uid
         }
 
         const ntw = this._need_to_wait()
-        this._log(`_request - need to wait ${ntw}`)
+        //this._log(`_request - need to wait ${ntw}`)
         if (ntw <= 0) {
             this._maybe_play_sound()
-            this._apply_delay()
+            this._apply_delay(true)
         }
     }
 
-    on_execution_ended() { 
+    on_execution_start() { 
         this._log("Clear uid on execution ended")
-        this.last_uid  = undefined
+        this.last_uid_to_ping = undefined
     }
 
-    on_activity() { this._apply_delay() }
+    on_executing(e) { 
+        this.executing_uid = e.detail 
+        this._log(`on_executing ${this.executing_uid}`)
+    }
+
+    on_activity() { this._apply_delay(false) }
 
     async _maybe_play_sound() { 
         if (app.ui.settings.getSettingValue("Image Filter.UI.Play Sound")) {
@@ -70,20 +77,20 @@ export class AudioHandler {
         if ((app.ui.settings.getSettingValue("Image Filter.Z.Detailed Logging"))) console.log(m)
     }
 
-    _apply_delay() { 
+    _apply_delay(loggit) { 
         var delay = app.ui.settings.getSettingValue("Image Filter.UI.Sound Timeout")
         if (delay<=0) delay = 9999999
-        this.next_allowed = Date.now() + delay*1000
-        this._log(`_apply_delay - need to wait ${this._need_to_wait()}`)
+        this.next_ping_allowed = Date.now() + delay*1000
+        if (loggit) this._log(`_apply_delay`)
     }
 
     _need_to_wait() {
-        return this.next_allowed - Date.now()
+        return this.next_ping_allowed - Date.now()
     }
 
 }
 
 export const sound_maker = new AudioHandler()
 
-document.addEventListener("click",    ()=>sound_maker.on_activity.bind(sound_maker))
-document.addEventListener("keypress", ()=>sound_maker.on_activity.bind(sound_maker))
+document.addEventListener("click",    sound_maker.on_activity.bind(sound_maker))
+document.addEventListener("keypress", sound_maker.on_activity.bind(sound_maker))

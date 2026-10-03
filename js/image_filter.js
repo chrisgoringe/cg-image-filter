@@ -96,7 +96,8 @@ app.registerExtension({
             {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./zoomed.css", import.meta.url).href } )
         api.addEventListener("execution_interrupted", popup.send_cancel.bind(popup));
         api.addEventListener("cg-image-filter-images",popup.handle_message.bind(popup));
-        api.addEventListener("execution_interrupted", sound_maker.on_execution_ended.bind(sound_maker));
+        api.addEventListener("execution_start", sound_maker.on_execution_start.bind(sound_maker));
+        api.addEventListener("executing",       sound_maker.on_executing.bind(sound_maker));
     },
     async beforeRegisterNodeDef(nodeType) {
         if (nodeType.comfyClass == "Pick from List") {
