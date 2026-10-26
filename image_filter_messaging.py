@@ -94,10 +94,10 @@ async def cg_image_filter_message(request):
     if str(MessageState.graph_id_expected)==str(message.graph_id):
         if (MessageState.waiting()):
             MessageState.set_latest(message)
-        else:
-            print(f"Ignoring response {response} because not waiting for one")
-    else:
-        print(f"Ignoring mismatched response {response}")
+    #    else:
+    #        print(f"Ignoring response {response} because not waiting for one")
+    #else:
+    #    print(f"Ignoring mismatched response {response}")
 
     return web.json_response({})
 

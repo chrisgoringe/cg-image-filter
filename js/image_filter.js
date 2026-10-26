@@ -5,6 +5,7 @@ import { create, sound_maker } from "./utils.js";
 import { popup, remove_preview } from "./popup.js";
 import { graph_id_to_tab } from "./graph_map.js";
 import { Log } from "./log.js";
+import { setup_mask_events } from "./mask_utils.js";
 
 const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter", "Image Filter for List"]
 
@@ -98,6 +99,9 @@ app.registerExtension({
         api.addEventListener("cg-image-filter-images",popup.handle_message.bind(popup));
         api.addEventListener("execution_start", sound_maker.on_execution_start.bind(sound_maker));
         api.addEventListener("executing",       sound_maker.on_executing.bind(sound_maker));
+
+        setup_mask_events()
+
     },
     async beforeRegisterNodeDef(nodeType) {
         if (nodeType.comfyClass == "Pick from List") {
