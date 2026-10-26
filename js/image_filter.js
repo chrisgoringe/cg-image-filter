@@ -3,7 +3,6 @@ import { api } from "../../scripts/api.js";
 
 import { create, sound_maker } from "./utils.js";
 import { popup, remove_preview } from "./popup.js";
-import { graph_id_to_tab } from "./graph_map.js";
 import { Log } from "./log.js";
 import { setup_mask_events } from "./mask_utils.js";
 
@@ -143,7 +142,6 @@ app.registerExtension({
         }
     },
 
-    afterConfigureGraph() { link_to_tab(3) }
 })
 
 function set_graph_id_widget(node) {
@@ -152,16 +150,5 @@ function set_graph_id_widget(node) {
         graph_id_widget.hidden = true
         graph_id_widget.value = `${app.graph.id}`
         graph_id_widget.computeSize = () => [0,0]  
-    }
-}
-
-function link_to_tab(tries) {
-    const tab = document.getElementsByClassName('p-togglebutton-checked')[0]
-    if (tab && app.graph.id) {
-        graph_id_to_tab.set(app.graph.id, tab )
-    } else if (tries>0) {
-        setTimeout( ()=> { link_to_tab(tries-1) }, 500 )
-    } else {
-        Log.log(`cg-image-filter: could not link graph to tab`)
     }
 }

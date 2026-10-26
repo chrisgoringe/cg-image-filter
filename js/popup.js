@@ -5,7 +5,6 @@ import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, p
 import { Log } from "./log.js";
 import { create, sound_maker } from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
-import { graph_id_to_tab } from "./graph_map.js";
 
 //const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
 const POPUP_NODES = ["Image Filter", "Text Image Filter", "Text Image Filter with Extras",]
@@ -288,16 +287,6 @@ class Popup extends HTMLElement {
         return node
     }
 
-    _flash_tab(graph_id) {
-        const tab = graph_id_to_tab.get(graph_id)
-        if (tab) {
-            const element = tab.firstElementChild?.firstElementChild?.firstElementChild || tab
-            if (this.tab_orginal_background===undefined) this.tab_orginal_background = element.style.backgroundColor
-            element.style.backgroundColor = '#ffff0040'
-            setTimeout( ()=>{ element.style.backgroundColor = this.tab_orginal_background }, 100 )
-        }
-    }
-
     _handle_message(message, using_saved) {
         const detail = message.detail
         const uid = sound_maker.executing_uid //app.runningNodeId
@@ -314,7 +303,6 @@ class Popup extends HTMLElement {
         sound_maker.on_message(detail)
 
         if (graph_id != app.graph.id) {
-            this._flash_tab(graph_id)
             Log.detail(`Message for different tab`)
             return
         }
@@ -424,7 +412,7 @@ class Popup extends HTMLElement {
         if (mask_editor_showing()) {
             setTimeout(this.wait_while_mask_editing.bind(this), 100)
         } else {
-            setTimeout(this.when_mask_editor_closes.bind(this), 300) // allow a pause to make sure the mask editor has saved the image to the node
+            setTimeout(this.when_mask_editor_closes.bind(this), 100) 
         } 
     }
 
