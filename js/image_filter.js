@@ -2,7 +2,7 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 import { create, sound_maker } from "./utils.js";
-import { popup, remove_preview } from "./popup.js";
+import { popup } from "./popup.js";
 import { Log } from "./log.js";
 import { setup_mask_events } from "./mask_utils.js";
 
@@ -39,7 +39,12 @@ app.registerExtension({
             type: "int",
             defaultValue: 30
         },
-        
+        {
+            id: "Image Filter.UI.Supress Preview",
+            name: "Try to hide the preview image on Mask Image Filter",
+            type: "boolean",
+            defaultValue: true
+        },        
         {
             id: "Image Filter.UI.Enlarge Small Images",
             name: "Enlarge small images in grid",
@@ -128,7 +133,6 @@ app.registerExtension({
             nodeType.prototype.configure = function () {
                 configure?.apply(this, arguments)
                 set_graph_id_widget(this)
-                if (this.type == 'Mask Image Filter') remove_preview(this)
             }
             const onNodeCreated = nodeType.prototype.onNodeCreated;
         /*
@@ -152,3 +156,4 @@ function set_graph_id_widget(node) {
         graph_id_widget.computeSize = () => [0,0]  
     }
 }
+

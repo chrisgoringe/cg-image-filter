@@ -3,7 +3,7 @@ import { api } from "../../scripts/api.js"
 
 import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save, new_editor, open_maskeditor } from "./mask_utils.js";
 import { Log } from "./log.js";
-import { create, sound_maker } from "./utils.js";
+import { create, sound_maker, supress_preview_image} from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
 
 //const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
@@ -419,10 +419,11 @@ class Popup extends HTMLElement {
     when_mask_editor_closes() {
         if (this.node.imgs?.[0]?.src) {
             this._send_response({masked_image:this.extract_filename(this.node.imgs[0].src)})
+            
         } else {
             this._send_response({masked_image:this.node.images?.[0]?.filename})
         }
-        remove_preview(this.node)
+        supress_preview_image(this.node)
     }
 
     extract_filename(url_string) {
@@ -736,14 +737,4 @@ customElements.define('cg-imgae-filter-popup', Popup)
 
 export const popup = new Popup()
 
-export function remove_preview(node, previous_tries=0, delay=50) {
-    const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
-    if (w && !w.hidden) {
-        w.hidden = true
-        node.setSize( [node.size[0], node.computeSize()[1]] )
-        app.canvas.setDirty(true,true)
-        console.log(`Removed preview from node ${node.id} after ${previous_tries} tries`)
-    } else {
-        if (previous_tries<6) setTimeout(remove_preview, delay, node, previous_tries+1, delay*2)
-    }
-}
+

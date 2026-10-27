@@ -8,6 +8,44 @@ export function create( tag, clss, parent, properties ) {
     return nd;
 }
 
+export function running_nodes2() {
+    return app.ui.settings.getSettingValue('Comfy.VueNodes.Enabled')
+}
+
+/** @param {node_object} node
+*/
+export function supress_preview_image(node) {
+    if (!app.ui.settings.getSettingValue("Image Filter.UI.Supress Preview")) return
+    if (running_nodes2()) remove_preview_nodes2(node)
+    else remove_preview_nodes1(node)
+}
+
+// probably works for Nodes 1
+function remove_preview_nodes1(node, previous_tries=0, delay=50) {
+    const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
+    if (w && !w.hidden) {
+        w.hidden = true
+        node.setSize( [node.size[0], node.computeSize()[1]] )
+        app.canvas.setDirty(true,true)
+        console.log(`Removed preview from node ${node.id} after ${previous_tries} tries`)
+    } else {
+        if (previous_tries<6) setTimeout(remove_preview, delay, node, previous_tries+1, delay*2)
+    }
+}
+
+function remove_preview_nodes2(node) {
+    if (!node.imgs) return
+    const el = document.querySelector(`[data-node-id="${node.id}"]`)?.querySelector(`.image-preview`)
+    if (el) {
+        el.style.display = "none"
+        el.style.height = "0px"
+    } else {
+        console.log(`Couldn't find an image element on ${node.id}`)
+    } 
+    node.setSize(node.computeSize())
+    app.graph.setDirtyCanvas(true, true)
+}
+
 
 const default_audio_folder = 'extensions/cg-image-filter/audio/'
 const default_audio_file = 'ding.mp3';
