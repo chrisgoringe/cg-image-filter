@@ -18,6 +18,7 @@ export function supress_preview_image(node) {
     if (!app.ui.settings.getSettingValue("Image Filter.UI.Supress Preview")) return
     if (running_nodes2()) remove_preview_nodes2(node)
     else remove_preview_nodes1(node)
+    node.imgs = []
 }
 
 // probably works for Nodes 1
@@ -34,14 +35,15 @@ function remove_preview_nodes1(node, previous_tries=0, delay=50) {
 }
 
 function remove_preview_nodes2(node) {
-    if (!node.imgs) return
-    const el = document.querySelector(`[data-node-id="${node.id}"]`)?.querySelector(`.image-preview`)
-    if (el) {
-        el.style.display = "none"
-        el.style.height = "0px"
-    } else {
-        console.log(`Couldn't find an image element on ${node.id}`)
-    } 
+    if (node.imgs) {
+        const el = document.querySelector(`[data-node-id="${node.id}"]`)?.querySelector(`.image-preview`)
+        if (el) {
+            el.style.display = "none"
+            el.style.height = "0px"
+        } else {
+            console.log(`Couldn't find an image element on ${node.id}`)
+        } 
+    }
     node.setSize(node.computeSize())
     app.graph.setDirtyCanvas(true, true)
 }

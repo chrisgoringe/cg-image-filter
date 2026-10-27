@@ -1,7 +1,7 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
-import { create, sound_maker } from "./utils.js";
+import { create, sound_maker, supress_preview_image } from "./utils.js";
 import { popup } from "./popup.js";
 import { Log } from "./log.js";
 import { setup_mask_events } from "./mask_utils.js";
@@ -145,8 +145,21 @@ app.registerExtension({
             }
         }
     },
+    afterConfigureGraph() {
+        setTimeout(run_soon_after_configure, 1000)
+    }
 
 })
+
+function run_soon_after_configure() {
+    try {
+        app.graph.nodes
+            .filter((node)=>FILTER_TYPES.includes(node.type))
+            .forEach(node => supress_preview_image(node) )
+    } catch {
+        let checkpoint_be_here
+    }
+}
 
 function set_graph_id_widget(node) {
     const graph_id_widget = node.widgets?.find((n)=>n.name=='graph_id')
