@@ -1,7 +1,8 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
-import { create, sound_maker, supress_preview_image } from "./utils.js";
+import { create, sound_maker, 
+    setup_mutation_detection, suppress_image_previews, remove_image_previews } from "./utils.js";
 import { popup } from "./popup.js";
 import { Log } from "./log.js";
 import { setup_mask_events } from "./mask_utils.js";
@@ -152,10 +153,14 @@ app.registerExtension({
 })
 
 function run_soon_after_configure() {
+    setup_mutation_detection()
     try {
         app.graph.nodes
             .filter((node)=>FILTER_TYPES.includes(node.type))
-            .forEach(node => supress_preview_image(node) )
+            .forEach((node) => {
+                remove_image_previews(node);
+                suppress_image_previews(node);
+            } )
     } catch {
         let checkpoint_be_here
     }

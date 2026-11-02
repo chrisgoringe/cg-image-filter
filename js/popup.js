@@ -3,7 +3,7 @@ import { api } from "../../scripts/api.js"
 
 import { mask_editor_listen_for_cancel, mask_editor_showing, hide_mask_editor, press_maskeditor_cancel, press_maskeditor_save, new_editor, open_maskeditor } from "./mask_utils.js";
 import { Log } from "./log.js";
-import { create, sound_maker, supress_preview_image} from "./utils.js";
+import { create, sound_maker, remove_image_previews} from "./utils.js";
 import { FloatingWindow } from "./floating_window.js";
 
 //const EXTENSION_NODES = ["Image Filter", "Text Image Filter", "Mask Image Filter", "Text Image Filter with Extras",]
@@ -423,7 +423,7 @@ class Popup extends HTMLElement {
         } else {
             this._send_response({masked_image:this.node.images?.[0]?.filename})
         }
-        supress_preview_image(this.node)
+        remove_image_previews(this.node)
     }
 
     extract_filename(url_string) {

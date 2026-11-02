@@ -12,9 +12,45 @@ export function running_nodes2() {
     return app.ui.settings.getSettingValue('Comfy.VueNodes.Enabled')
 }
 
+/*
+Detect changes in the Nodes2 DOM for specified nodes and supress the image 
+*/
+
+var image_preview_suppressor
+
+function hide_preview_if_found(element) {
+    if (element?.querySelector) {
+        const el = element.querySelector(`.image-preview`)
+        if (el) {
+            el.style.display = "none"
+            el.style.height = "0px"                    
+        }
+    }
+}
+
+export function setup_mutation_detection() {
+    image_preview_suppressor = new MutationObserver((mutations)=>{
+        mutations.forEach((mutation)=>{
+            mutation.addedNodes.forEach((node)=>{
+                hide_preview_if_found(node)
+            })
+        })
+    })
+}
+
+export function suppress_image_previews(node) {
+    if (!image_preview_suppressor) setup_mutation_detection()
+    const el = document.querySelector(`[data-node-id="${node.id}"]`)
+    if (el) {
+        image_preview_suppressor.observe(el, { childList: true, subtree: true })
+        return true
+    } else { return false }
+}
+
+
 /** @param {node_object} node
 */
-export function supress_preview_image(node) {
+export function remove_image_previews(node) {
     if (!app.ui.settings.getSettingValue("Image Filter.UI.Supress Preview")) return
     if (running_nodes2()) remove_preview_nodes2(node)
     else remove_preview_nodes1(node)
@@ -30,22 +66,15 @@ function remove_preview_nodes1(node, previous_tries=0, delay=50) {
         app.canvas.setDirty(true,true)
         console.log(`Removed preview from node ${node.id} after ${previous_tries} tries`)
     } else {
-        if (previous_tries<6) setTimeout(remove_preview, delay, node, previous_tries+1, delay*2)
+        if (previous_tries<6) setTimeout(remove_preview_nodes1, delay, node, previous_tries+1, delay*2)
     }
 }
 
 function remove_preview_nodes2(node) {
-    if (node.imgs) {
-        const el = document.querySelector(`[data-node-id="${node.id}"]`)?.querySelector(`.image-preview`)
-        if (el) {
-            el.style.display = "none"
-            el.style.height = "0px"
-        } else {
-            console.log(`Couldn't find an image element on ${node.id}`)
-        } 
-    }
+    hide_preview_if_found(document.querySelector(`[data-node-id="${node.id}"]`))
     node.setSize(node.computeSize())
     app.graph.setDirtyCanvas(true, true)
+    
 }
 
 
