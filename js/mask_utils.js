@@ -1,5 +1,39 @@
 import { app, ComfyApp } from "../../scripts/app.js";
 
+var mask_edit_window_open = false
+
+export function setup_mask_events() {
+    const SEL = '[data-testid="mask-editor-root"]';
+    let open = false;
+
+    const hasEditor = (nodes) =>
+    [...nodes].some(
+        (n) => n.nodeType === 1 && (n.matches?.(SEL) || n.querySelector?.(SEL))
+    );
+
+    new MutationObserver((mutations) => {
+    for (const m of mutations) {
+        if (!open && hasEditor(m.addedNodes)) {
+        open = true;
+        window.dispatchEvent(new CustomEvent("maskeditor:opened"));
+        } else if (open && hasEditor(m.removedNodes)) {
+        open = false;
+        window.dispatchEvent(new CustomEvent("maskeditor:closed"));
+        }
+    }
+    }).observe(document.body, { childList: true, subtree: true });
+
+    let node, before;
+    window.addEventListener("maskeditor:opened", () => {
+        mask_edit_window_open = true
+        //before = node?.widgets?.find((w) => w.name === "image")?.value;
+    });
+    window.addEventListener("maskeditor:closed", () => {
+        // after = node?.widgets?.find((w) => w.name === "image")?.value;
+        mask_edit_window_open = false
+    });
+}
+
 export function new_editor() {
     return app.ui.settings.getSettingValue('Comfy.MaskEditor.UseNewEditor')
 }
@@ -15,9 +49,10 @@ function get_mask_editor_element() {
 var buttons = null
 
 export function mask_editor_showing() {
-    const mee = get_mask_editor_element()
-    if (mee) buttons = Array.from(mee.getElementsByTagName('button'))
-    return mee && mee.style.display != 'none'
+    return mask_edit_window_open
+    //const mee = get_mask_editor_element()
+    //if (mee) buttons = Array.from(mee.getElementsByTagName('button'))
+    //return mee && mee.style.display != 'none'
 }
 
 export function hide_mask_editor() {

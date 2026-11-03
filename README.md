@@ -55,6 +55,13 @@ or jump down to [example workflows](#example-workflows) for more examples.
 
 # Recent Changes
 
+## New in 1.9.1 and 1.9.2
+
+- Fixed output of Pick from List [156](https://github.com/chrisgoringe/cg-image-filter/issues/156)
+- Fixed sound effect options
+- Fixed some issues related to changes in ComfyUI, esp. with mask editor [164](https://github.com/chrisgoringe/cg-image-filter/issues/164), [165](https://github.com/chrisgoringe/cg-image-filter/issues/165), [167](https://github.com/chrisgoringe/cg-image-filter/issues/167)
+- Updated mask editor to work better with Nodes 2.0
+
 ## New in 1.9
 
 - [Custom audio](#audiofile)

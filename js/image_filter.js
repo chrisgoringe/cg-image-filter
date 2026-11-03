@@ -1,14 +1,15 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
-import { create } from "./utils.js";
-import { popup, remove_preview } from "./popup.js";
-import { graph_id_to_tab } from "./graph_map.js";
+import { create, sound_maker, 
+    setup_mutation_detection, suppress_image_previews, remove_image_previews } from "./utils.js";
+import { popup } from "./popup.js";
 import { Log } from "./log.js";
+import { setup_mask_events } from "./mask_utils.js";
 
 const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter", "Image Filter for List"]
 
-const VERSION = "1.9.2"
+const VERSION = "1.9.2"  // sync:version
 
 app.registerExtension({
 	name: "cg.image_filter",
@@ -35,12 +36,16 @@ app.registerExtension({
         },
         {
             id: "Image Filter.UI.Sound Timeout",
-            name: "Reminder sound every x seconds",
+            name: "Reminder sound every x seconds. 0 or negative for never.",
             type: "int",
-            defaultValue: 30,
-            onChange: popup.setup_sound_throttle.bind(popup)
+            defaultValue: 30
         },
-        
+        {
+            id: "Image Filter.UI.Supress Preview",
+            name: "Try to hide the preview image on Mask Image Filter",
+            type: "boolean",
+            defaultValue: true
+        },        
         {
             id: "Image Filter.UI.Enlarge Small Images",
             name: "Enlarge small images in grid",
@@ -97,6 +102,11 @@ app.registerExtension({
             {'rel':'stylesheet', 'type':'text/css', 'href': new URL("./zoomed.css", import.meta.url).href } )
         api.addEventListener("execution_interrupted", popup.send_cancel.bind(popup));
         api.addEventListener("cg-image-filter-images",popup.handle_message.bind(popup));
+        api.addEventListener("execution_start", sound_maker.on_execution_start.bind(sound_maker));
+        api.addEventListener("executing",       sound_maker.on_executing.bind(sound_maker));
+
+        setup_mask_events()
+
     },
     async beforeRegisterNodeDef(nodeType) {
         if (nodeType.comfyClass == "Pick from List") {
@@ -124,7 +134,6 @@ app.registerExtension({
             nodeType.prototype.configure = function () {
                 configure?.apply(this, arguments)
                 set_graph_id_widget(this)
-                if (this.type == 'Mask Image Filter') remove_preview(this)
             }
             const onNodeCreated = nodeType.prototype.onNodeCreated;
         /*
@@ -137,9 +146,25 @@ app.registerExtension({
             }
         }
     },
+    afterConfigureGraph() {
+        setTimeout(run_soon_after_configure, 1000)
+    }
 
-    afterConfigureGraph() { link_to_tab(3) }
 })
+
+function run_soon_after_configure() {
+    setup_mutation_detection()
+    try {
+        app.graph.nodes
+            .filter((node)=>FILTER_TYPES.includes(node.type))
+            .forEach((node) => {
+                remove_image_previews(node);
+                suppress_image_previews(node);
+            } )
+    } catch {
+        let checkpoint_be_here
+    }
+}
 
 function set_graph_id_widget(node) {
     const graph_id_widget = node.widgets?.find((n)=>n.name=='graph_id')
@@ -150,13 +175,3 @@ function set_graph_id_widget(node) {
     }
 }
 
-function link_to_tab(tries) {
-    const tab = document.getElementsByClassName('p-togglebutton-checked')[0]
-    if (tab && app.graph.id) {
-        graph_id_to_tab.set(app.graph.id, tab )
-    } else if (tries>0) {
-        setTimeout( ()=> { link_to_tab(tries-1) }, 500 )
-    } else {
-        Log.log(`cg-image-filter: could not link graph to tab`)
-    }
-}
