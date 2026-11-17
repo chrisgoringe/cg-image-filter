@@ -1,4 +1,8 @@
 import { app  } from "../../scripts/app.js";
+import { Log } from "./log.js";
+
+export const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter", "Image Filter for List"]
+
 
 export function create( tag, clss, parent, properties ) {
     const nd = document.createElement(tag);
@@ -12,71 +16,43 @@ export function running_nodes2() {
     return app.ui.settings.getSettingValue('Comfy.VueNodes.Enabled')
 }
 
+
 /*
-Detect changes in the Nodes2 DOM for specified nodes and supress the image 
+Detect when an image preview is added to the DOM
 */
+const image_preview_detector = new MutationObserver((mutations)=>{
+    if (!app.ui.settings.getSettingValue("Image Filter.UI.Supress Preview")) return
+    mutations.forEach((mutation)=>{
+        mutation.addedNodes.forEach((element)=>{
+            const el = element.querySelector?.(`.image-preview`)
+            if (el) {
+                var parent = el.parentElement
+                while (parent && !parent.getAttribute?.('data-node-id')) parent = parent.parentElement
 
-var image_preview_suppressor
-
-function hide_preview_if_found(element) {
-    if (element?.querySelector) {
-        const el = element.querySelector(`.image-preview`)
-        if (el) {
-            el.style.display = "none"
-            el.style.height = "0px"                    
-        }
-    }
-}
-
-export function setup_mutation_detection() {
-    image_preview_suppressor = new MutationObserver((mutations)=>{
-        mutations.forEach((mutation)=>{
-            mutation.addedNodes.forEach((node)=>{
-                hide_preview_if_found(node)
-            })
+                if (parent) {
+                    const nid  = parent.getAttribute?.('data-node-id')
+                    const type = app.graph.getNodeById(nid)?.type
+                    if (FILTER_TYPES.includes(type)) {
+                        el.style.display = "none"
+                        el.style.height = "0px"                    
+                    }
+                } else {
+                    Log.log(`Found .image-preview without a parent with data-node-id`)
+                }
+            }
         })
     })
+})
+
+var nodeParent
+export function setup_dom_monitoring() {
+    if (!running_nodes2()) return
+    const el = document.querySelector(`[data-testid="transform-pane"]`)
+    if (!el || el===nodeParent) return
+    nodeParent = el
+    image_preview_detector.disconnect()
+    image_preview_detector.observe(nodeParent, { childList: true, subtree: true })
 }
-
-export function suppress_image_previews(node) {
-    if (!image_preview_suppressor) setup_mutation_detection()
-    const el = document.querySelector(`[data-node-id="${node.id}"]`)
-    if (el) {
-        image_preview_suppressor.observe(el, { childList: true, subtree: true })
-        return true
-    } else { return false }
-}
-
-
-/** @param {node_object} node
-*/
-export function remove_image_previews(node) {
-    if (!app.ui.settings.getSettingValue("Image Filter.UI.Supress Preview")) return
-    if (running_nodes2()) remove_preview_nodes2(node)
-    else remove_preview_nodes1(node)
-    node.imgs = []
-}
-
-// probably works for Nodes 1
-function remove_preview_nodes1(node, previous_tries=0, delay=50) {
-    const w = node?.widgets?.find((w)=>{return w.name=='$$canvas-image-preview'})
-    if (w && !w.hidden) {
-        w.hidden = true
-        node.setSize( [node.size[0], node.computeSize()[1]] )
-        app.canvas.setDirty(true,true)
-        console.log(`Removed preview from node ${node.id} after ${previous_tries} tries`)
-    } else {
-        if (previous_tries<6) setTimeout(remove_preview_nodes1, delay, node, previous_tries+1, delay*2)
-    }
-}
-
-function remove_preview_nodes2(node) {
-    hide_preview_if_found(document.querySelector(`[data-node-id="${node.id}"]`))
-    node.setSize(node.computeSize())
-    app.graph.setDirtyCanvas(true, true)
-    
-}
-
 
 const default_audio_folder = 'extensions/cg-image-filter/audio/'
 const default_audio_file = 'ding.mp3';

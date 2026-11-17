@@ -1,13 +1,9 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
-import { create, sound_maker, 
-    setup_mutation_detection, suppress_image_previews, remove_image_previews } from "./utils.js";
+import { create, sound_maker, setup_dom_monitoring, FILTER_TYPES } from "./utils.js";
 import { popup } from "./popup.js";
-import { Log } from "./log.js";
 import { setup_mask_events } from "./mask_utils.js";
-
-const FILTER_TYPES = ["Image Filter","Text Image Filter","Text Image Filter with Extras","Mask Image Filter", "Image Filter for List"]
 
 const VERSION = "1.9.3"  // sync:version
 
@@ -104,7 +100,6 @@ app.registerExtension({
         api.addEventListener("cg-image-filter-images",popup.handle_message.bind(popup));
         api.addEventListener("execution_start", sound_maker.on_execution_start.bind(sound_maker));
         api.addEventListener("executing",       sound_maker.on_executing.bind(sound_maker));
-
         setup_mask_events()
 
     },
@@ -147,24 +142,10 @@ app.registerExtension({
         }
     },
     afterConfigureGraph() {
-        setTimeout(run_soon_after_configure, 1000)
+        setup_dom_monitoring()
     }
 
 })
-
-function run_soon_after_configure() {
-    setup_mutation_detection()
-    try {
-        app.graph.nodes
-            .filter((node)=>FILTER_TYPES.includes(node.type))
-            .forEach((node) => {
-                remove_image_previews(node);
-                suppress_image_previews(node);
-            } )
-    } catch {
-        let checkpoint_be_here
-    }
-}
 
 function set_graph_id_widget(node) {
     const graph_id_widget = node.widgets?.find((n)=>n.name=='graph_id')
